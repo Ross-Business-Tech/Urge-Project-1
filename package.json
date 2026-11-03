@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.cpSync('brightpath','dist',{recursive:true})\"",
     "lint": "oxlint",
     "preview": "vite preview",
     "smoke": "node scripts/smoke-test.cjs",
-    "publish:preview": "node scripts/herenow-publish.mjs preview"
+    "publish:preview": "node scripts/herenow-publish.mjs preview",
+    "build:memo-drafter": "vite build"
   },
   "dependencies": {
     "react": "^19.3.1",

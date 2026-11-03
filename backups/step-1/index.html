@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brightpath Grant Report Builder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <p class="org">Brightpath Youth Mentoring</p>
+      <h1>Grant Report Builder</h1>
+      <p class="lede">Turn a month of messy data from four places into a funder report you can review, in minutes instead of weeks of late nights.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="metric" aria-label="Time saved goal">
+      <div class="metric-box before">
+        <span class="metric-label">Today</span>
+        <span class="metric-num">~30 hrs</span>
+        <span class="metric-sub">over 3 weeks, mostly at night</span>
+      </div>
+      <div class="metric-arrow" aria-hidden="true">→</div>
+      <div class="metric-box after">
+        <span class="metric-label">With this tool</span>
+        <span class="metric-num">&lt; 12 hrs</span>
+        <span class="metric-sub">60% less time, report ready to review</span>
+      </div>
+    </section>
+
+    <section class="step">
+      <h2><span class="step-num">1</span> Bring in this month's data</h2>
+      <p class="hint">In real life you'd drop in your exports. For the demo, load an invented month (October 2026).</p>
+      <div class="actions">
+        <button id="load-sample" class="btn primary">Load sample month</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div id="sources" class="sources"></div>
+    </section>
+
+    <section class="step muted" id="step-2">
+      <h2><span class="step-num">2</span> Build the report</h2>
+      <p class="hint">Merge the four sources, remove duplicates, count only families who actually showed up.</p>
+      <button class="btn" disabled>Build report (coming next)</button>
+    </section>
+  </main>
+
+  <footer class="wrap foot">All names and numbers are invented sample data.</footer>
+
+  <script src="data.js"></script>
+  <script src="ai.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
