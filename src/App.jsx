@@ -41,7 +41,6 @@ export default function App() {
   const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
   const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
   const [spin, setSpin] = useState(0); // changes on every randomize/sample load so the form visibly refills
-  const [rolling, setRolling] = useState(false);
   const [checking, setChecking] = useState(false);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
@@ -89,8 +88,6 @@ export default function App() {
     const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : Math.floor(Math.random() * 1e6) + 1;
     setSeedTyped(false);
     setSpin((n) => n + 1);
-    setRolling(true);
-    setTimeout(() => setRolling(false), 700);
     const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
     setDeal(r.deal);
     setGenerated(null);
@@ -200,7 +197,7 @@ export default function App() {
               <label><span>Last seed (type one to repeat it)</span>
                 <input inputMode="numeric" placeholder="random" value={rand.seed} onChange={(e) => { setSeedTyped(true); setRand({ ...rand, seed: e.target.value.replace(/\D/g, '') }); }} aria-label="Random seed" />
               </label>
-              <button className={'btn dice' + (rolling ? ' rolling' : '')} onClick={() => randomize(false)}><span className="die" aria-hidden="true">🎲</span> Randomize the whole deal</button>
+              <button className="btn" onClick={() => randomize(false)}>Randomize the whole deal</button>
               <button className="btn ghost" disabled={!rand.seed} onClick={() => randomize(true)}>Repeat this seed</button>
             </div>
           </div>

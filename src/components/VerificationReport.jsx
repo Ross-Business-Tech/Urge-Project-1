@@ -19,7 +19,7 @@ export default function VerificationReport({ report, onRecheck, checking }) {
           </span>
         </div>
         <button className="btn ghost recheck" onClick={onRecheck} disabled={checking}>
-          {checking ? <><span className="spinner" aria-hidden="true" /> Checking<span className="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></> : 'Re-check the memo text'}
+          {checking ? <><span className="spinner" aria-hidden="true" /> Checking…</> : 'Re-check the memo text'}
         </button>
       </div>
       {report.checkedAt && !checking && (

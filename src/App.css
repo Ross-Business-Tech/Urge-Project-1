@@ -167,37 +167,19 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .samples select, .samples input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; background: #fbfcfd; min-width: 0; }
 .random { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
 
-/* Randomize animation: the dice spins and every section of the form slides in and flashes */
-.dice .die { display: inline-block; }
-.dice.rolling .die { animation: dice-roll .65s ease-in-out; }
-@keyframes dice-roll { 0% { transform: rotate(0) scale(1); } 40% { transform: rotate(280deg) scale(1.5); } 100% { transform: rotate(720deg) scale(1); } }
-.shuffle fieldset { animation: form-shuffle .6s ease-out both; }
-.shuffle fieldset:nth-child(2) { animation-delay: .07s; }
-.shuffle fieldset:nth-child(3) { animation-delay: .14s; }
-.shuffle fieldset:nth-child(4) { animation-delay: .21s; }
-.shuffle fieldset:nth-child(5) { animation-delay: .28s; }
-.shuffle fieldset:nth-child(6) { animation-delay: .35s; }
-@keyframes form-shuffle {
-  0% { opacity: 0; transform: translateY(18px) scale(.985); background: #fff3c4; }
-  60% { opacity: 1; background: #fff3c4; }
-  100% { opacity: 1; transform: none; background: var(--surface); }
+/* Randomize: the form fades in with a soft highlight so it is clear the data changed */
+.shuffle fieldset { animation: form-refresh .45s ease-out both; }
+@keyframes form-refresh {
+  0% { opacity: .35; background: #eaf1f8; }
+  100% { opacity: 1; background: var(--surface); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .dice.rolling .die, .shuffle fieldset { animation: none; }
-}
+@media (prefers-reduced-motion: reduce) { .shuffle fieldset { animation: none; } }
 
-/* Re-check animation: spinner + dots, and the old results fade while it works */
+/* Re-check: a small spinner, and the old results dim while it works */
 .recheck { display: inline-flex; align-items: center; gap: 8px; min-width: 150px; justify-content: center; }
 .recheck:disabled { cursor: progress; opacity: .85; }
-.spinner { width: 16px; height: 16px; border: 2.5px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.dots i { font-style: normal; animation: dot-blink 1s infinite both; }
-.dots i:nth-child(2) { animation-delay: .2s; }
-.dots i:nth-child(3) { animation-delay: .4s; }
-@keyframes dot-blink { 0%, 80%, 100% { opacity: .15; } 40% { opacity: 1; } }
 .verify-time { margin: 4px 0 0; }
-.verify.checking .verify-group, .verify.checking .verify-pass { opacity: .35; transition: opacity .2s; filter: blur(.4px); }
-.verify.checking { position: relative; overflow: hidden; }
-.verify.checking::after { content: ''; position: absolute; left: 0; top: 0; height: 3px; width: 40%; background: var(--brand); animation: sweep 1s ease-in-out infinite; }
-@keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
-@media (prefers-reduced-motion: reduce) { .spinner, .dots i, .verify.checking::after { animation: none; } }
+.verify.checking .verify-group, .verify.checking .verify-pass { opacity: .4; transition: opacity .2s; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
