@@ -1,12 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import DealForm from './components/DealForm.jsx';
 import Memo from './components/Memo.jsx';
+import SourceCard from './components/SourceCard.jsx';
+import { explain } from './lib/sources.js';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
 import './App.css';
 
 const STORE = 'memo-drafter-deal-v1';
+const ORIGINS = 'memo-drafter-origins-v1';
+
+// Remembers how the deal got here (typed, sample, or uploaded file + row numbers)
+// so the memo can show where each number came from.
+function loadOrigins() {
+  try {
+    return JSON.parse(localStorage.getItem(ORIGINS)) || { kind: 'typed' };
+  } catch {
+    return { kind: 'typed' };
+  }
+}
 
 function loadSaved() {
   try {
@@ -30,6 +43,10 @@ const slug = (s) => (s || 'deal').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g,
 
 export default function App() {
   const [deal, setDeal] = useState(loadSaved);
+  const [origins, setOrigins] = useState(loadOrigins);
+  const [mode, setMode] = useState('view'); // 'view' = tap numbers for sources, 'edit' = type in the memo
+  const [card, setCard] = useState(null);
+  const closeCard = useCallback(() => setCard(null), []);
   const [tab, setTab] = useState('data');
   const [generated, setGenerated] = useState(null); // { deal, id }
   const [msg, setMsg] = useState(null);
@@ -39,6 +56,19 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem(STORE, JSON.stringify(deal)); } catch { /* storage unavailable */ }
   }, [deal]);
+  useEffect(() => {
+    try { localStorage.setItem(ORIGINS, JSON.stringify(origins)); } catch { /* storage unavailable */ }
+  }, [origins]);
+
+  // Load a whole new deal and record where it came from.
+  const loadDeal = (d, o) => { setDeal(d); setOrigins(o); };
+
+  // Edits on the Deal data page: anything changed by hand now counts as "typed".
+  const editDeal = (next) => {
+    const changed = Object.keys(next).filter((k) => next[k] !== deal[k]);
+    if (changed.length) setOrigins((o) => ({ ...o, typed: { ...o.typed, ...Object.fromEntries(changed.map((k) => [k, true])) } }));
+    setDeal(next);
+  };
 
   const flash = (text, kind = 'ok') => {
     setMsg({ text, kind });
@@ -51,8 +81,9 @@ export default function App() {
     if (!file) return;
     try {
       const text = await file.text();
-      const d = file.name.toLowerCase().endsWith('.json') ? dealFromJson(text) : dealFromCsv(text);
-      setDeal(d);
+      const lines = {};
+      const d = file.name.toLowerCase().endsWith('.json') ? dealFromJson(text) : dealFromCsv(text, lines);
+      loadDeal(d, { kind: 'file', fileName: file.name, lines });
       flash(`Loaded ${file.name}. Review the fields, then write the memo.`);
     } catch (err) {
       flash(`Couldn’t read that file. ${err.message || ''} Use a .csv saved from the template.`, 'err');
@@ -60,9 +91,47 @@ export default function App() {
   };
 
   const generate = () => {
-    setGenerated({ deal: structuredClone(deal), id: Date.now() });
+    setGenerated({ deal: structuredClone(deal), origins: structuredClone(origins), id: Date.now() });
+    setCard(null);
     setTab('memo');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Remember each number's original text, so the card can tell if it was changed by hand.
+  useEffect(() => {
+    memoRef.current?.querySelectorAll('.src').forEach((el) => { el.dataset.orig = el.textContent; });
+  }, [generated?.id]);
+
+  // Viewing mode: tapping a marked number opens its source card.
+  const onPaperClick = (e) => {
+    if (mode !== 'view') return;
+    if (e.target.closest('a')) return; // let article links open normally
+    const el = e.target.closest('[data-src]');
+    if (!el) return;
+    const info = explain(el.dataset.src, generated.deal, generated.origins);
+    if (!info) return;
+    const shown = el.textContent.trim();
+    const original = (el.dataset.orig || '').trim();
+    setCard({ info, shown, original, edited: original && shown !== original, anchor: el.getBoundingClientRect() });
+  };
+
+  // "Go to this in Deal data": open the form and jump to that box.
+  const goToField = (field) => {
+    setCard(null);
+    setTab('data');
+    setTimeout(() => {
+      let el = document.getElementById('f-' + field);
+      if (!el) {
+        const wanted = { urgeUses: 'How the loan will be used', projectSources: 'Project sources (overall financing)', projectUses: 'Project uses', financials: 'Revenue and net income by year', repaymentOptions: 'Ways the fund gets repaid (in priority order)', news: 'News items for the memo', team: 'Team members' }[field];
+        el = [...document.querySelectorAll('.field .label')].find((l) => l.textContent === wanted);
+      }
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.closest('.field')?.classList.add('flash');
+        setTimeout(() => el.closest('.field')?.classList.remove('flash'), 2000);
+        if (el.focus) el.focus({ preventScroll: true });
+      }
+    }, 50);
   };
 
   const memoHtml = () => memoRef.current?.innerHTML || '';
@@ -112,17 +181,17 @@ export default function App() {
           <p>Upload the deal spreadsheet or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
           <div className="actions">
             <button className="btn" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
-            <button className="btn ghost" onClick={() => { setDeal(structuredClone(sampleDeal)); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
+            <button className="btn ghost" onClick={() => { loadDeal(structuredClone(sampleDeal), { kind: 'sample' }); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
             <button className="btn ghost" onClick={() => download(`deal-data-${slug(deal.firmName || 'template')}.csv`, dealToCsv(deal.firmName ? deal : sampleDeal), 'text/csv')}>
               {deal.firmName ? 'Save data as spreadsheet' : 'Download blank template'}
             </button>
-            <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) setDeal(structuredClone(emptyDeal)); }}>Clear</button>
+            <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) loadDeal(structuredClone(emptyDeal), { kind: 'typed' }); }}>Clear</button>
             <input ref={fileRef} type="file" accept=".csv,.json,text/csv,application/json" hidden onChange={onUpload} />
           </div>
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>
 
-        <DealForm deal={deal} set={setDeal} />
+        <DealForm deal={deal} set={editDeal} />
 
         <div className="sticky-cta">
           <button className="btn big" onClick={generate}>Write the memo →</button>
@@ -132,11 +201,21 @@ export default function App() {
       <main hidden={tab !== 'memo'}>
         {generated ? (
           <>
+            <div className="mode-bar no-print">
+              <div className="mode-switch" role="group" aria-label="Memo mode">
+                <button type="button" aria-pressed={mode === 'view'} className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}>👁 Viewing</button>
+                <button type="button" aria-pressed={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => { setMode('edit'); setCard(null); }}>✏️ Editing</button>
+              </div>
+              <span className="small">
+                {mode === 'view'
+                  ? 'Tap any highlighted number to see where it came from.'
+                  : 'Click any text in the memo to change it. Switch back to Viewing to check sources.'}
+              </span>
+            </div>
             <div className="memo-bar no-print">
               <div className="flag-summary">
                 <span className="badge badge-red">{counts.red} red</span>
                 <span className="badge badge-yellow">{counts.yellow} yellow</span>
-                <span className="small">Click any text in the memo to edit it.</span>
               </div>
               <div className="actions">
                 <button className="btn" onClick={downloadWord}>Download for Word</button>
@@ -145,9 +224,20 @@ export default function App() {
                 <button className="btn text" onClick={() => setTab('data')}>← Edit data</button>
               </div>
             </div>
-            <div className="paper" ref={memoRef} contentEditable suppressContentEditableWarning spellCheck key={generated.id}>
+            <div
+              className={`paper ${mode === 'view' ? 'viewing' : 'editing'}`}
+              ref={memoRef}
+              contentEditable={mode === 'edit'}
+              suppressContentEditableWarning
+              spellCheck={mode === 'edit'}
+              key={generated.id}
+              onClick={onPaperClick}
+            >
               <Memo deal={generated.deal} />
             </div>
+            {card && mode === 'view' && (
+              <SourceCard {...card} onClose={closeCard} onGoTo={goToField} />
+            )}
           </>
         ) : null}
       </main>
