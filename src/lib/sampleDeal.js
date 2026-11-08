@@ -126,7 +126,7 @@ export const sampleDeal = {
     { name: 'Sam Rivera', company: 'Sample Design Studio', role: 'Architect', bio: 'Licensed architect with 15 years of small-format retail and office design experience.' },
     { name: 'Taylor Brooks', company: 'Example Construction Co.', role: 'General Contractor', bio: 'GC with a portfolio of 30+ commercial projects under $10M in the region.' },
   ],
-  newsSummary: 'SAMPLE ONLY: these news items are made up to show how results look. Press “Search the news” on the team site for real results.',
+  newsSummary: 'SAMPLE ONLY: these news items are made up to show how results look. Press “Search the news” to replace them with real results.',
   newsCheckedAt: '',
   news: [
     { about: 'Site', level: 'green', headline: 'Sample: City approves streetscape upgrades along the corridor', source: 'Made-up sample', date: '2026-06', url: '', summary: 'New lighting, sidewalks and bike lanes planned within two blocks of the site.', relevance: 'Supports retail foot traffic and leasing.' },

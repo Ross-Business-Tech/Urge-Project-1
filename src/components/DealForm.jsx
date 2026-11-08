@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchNews, manualSearches } from '../lib/news.js';
+import { searchNews, searchNewsFree, manualSearches } from '../lib/news.js';
 
 const YES_NO = ['', 'Yes', 'No'];
 
@@ -7,11 +7,11 @@ function NewsCheck({ deal, set }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const links = manualSearches(deal);
-  const run = async () => {
-    setBusy(true);
+  const run = async (ai) => {
+    setBusy(ai ? 'ai' : 'free');
     setError('');
     try {
-      const r = await searchNews(deal);
+      const r = ai ? await searchNews(deal) : await searchNewsFree(deal);
       set({ ...deal, news: r.items, newsSummary: r.summary, newsCheckedAt: new Date().toISOString().slice(0, 10) });
     } catch (e) {
       setError(e.message);
@@ -23,12 +23,15 @@ function NewsCheck({ deal, set }) {
   return (
     <div className="field wide news-check">
       <p className="small">
-        Searches the web for recent news about the borrower, the principal and the area around the site, then rates each item red, yellow or green.
+        Searches Bing and Google News for the last 3 years of coverage on the borrower, the principal, the project and its street, and rates each article red, yellow or green using warning words (e.g. lawsuit, lien, foreclosure). “Deeper AI search” reads and rates articles with AI once your instructor adds the AI key.
         Results go into the memo and the flags list. Always open the source before relying on it.
       </p>
       <div className="actions">
-        <button type="button" className="btn" onClick={run} disabled={busy || !ready}>
-          {busy ? 'Searching… (up to a minute)' : deal.newsCheckedAt ? 'Search the news again' : 'Search the news'}
+        <button type="button" className="btn" onClick={() => run(false)} disabled={!!busy || !ready}>
+          {busy === 'free' ? 'Searching…' : deal.newsCheckedAt ? 'Search the news again' : 'Search the news'}
+        </button>
+        <button type="button" className="btn ghost" onClick={() => run(true)} disabled={!!busy || !ready} title="Needs the AI key in here.now">
+          {busy === 'ai' ? 'AI is reading the news… (up to a minute)' : 'Deeper AI search'}
         </button>
       </div>
       {!ready && <small>Fill in the borrower name or project address first.</small>}

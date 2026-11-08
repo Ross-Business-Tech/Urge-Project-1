@@ -98,3 +98,142 @@ export async function searchNews(deal) {
 
   return { summary: clean(parsed.summary, 800), items, citations };
 }
+
+// ---------------------------------------------------------------------------
+// Keyless news check: Bing News / Google News search feeds (through the site's
+// /api/bnews and /api/gnews proxy routes, which need no key) + simple keyword rules for the rating.
+
+const RED_WORDS = /\b(lawsuit|sued|suing|litigation|foreclos\w*|bankrupt\w*|lien|liens|fraud\w*|indict\w*|charged|convicted|default\w*|eviction\w*|violation\w*|condemn\w*|stop.work|investigat\w*|scandal|settle\w*)\b/i;
+const YELLOW_WORDS = /\b(delay\w*|stall\w*|clos(e|es|ed|ing|ure)|vacan\w*|crime|shooting|layoff\w*|cuts?|over.budget|dispute\w*|opposition|oppose\w*|protest\w*|rezoning|zoning|contamina\w*|demolish\w*|demolition|tax.increase|price.drop|struggl\w*)\b/i;
+const GREEN_WORDS = /\b(award\w*|approv\w*|open(s|ed|ing)?|grant\w*|invest(s|ed|ment)|expan\w*|complet\w*|celebrat\w*|groundbreak\w*|launch\w*|honor\w*|wins?|funding|revitaliz\w*|new jobs|hiring)\b/i;
+
+function rate(text) {
+  const r = text.match(RED_WORDS);
+  if (r) return { level: 'red', why: `Mentions “${r[0]}”` };
+  const y = text.match(YELLOW_WORDS);
+  if (y) return { level: 'yellow', why: `Mentions “${y[0]}”` };
+  const g = text.match(GREEN_WORDS);
+  if (g) return { level: 'green', why: `Mentions “${g[0]}”` };
+  return { level: 'yellow', why: 'No warning words found; read to judge relevance' };
+}
+
+const stripTags = (s) => {
+  const doc = new DOMParser().parseFromString(`<body>${s || ''}</body>`, 'text/html');
+  return doc.body.textContent || '';
+};
+
+// Bing News first; Google News as a backup (Google often blocks shared servers).
+async function fetchXml(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const e = new Error(String(res.status));
+    e.status = res.status;
+    throw e;
+  }
+  const xml = new DOMParser().parseFromString(await res.text(), 'text/xml');
+  if (xml.querySelector('parsererror') || !xml.querySelector('channel')) {
+    const e = new Error('bad feed');
+    e.status = 502;
+    throw e;
+  }
+  return xml;
+}
+
+function realLink(link) {
+  // Bing wraps article links in a click-tracking URL; pull out the real article address.
+  try {
+    const u = new URL(link);
+    if (u.hostname.endsWith('bing.com') && u.searchParams.get('url')) return safeUrl(u.searchParams.get('url'));
+  } catch { /* not a URL */ }
+  return safeUrl(link);
+}
+
+function items(xml) {
+  return [...xml.getElementsByTagName('item')].map((it) => {
+    const get = (tag) => it.getElementsByTagName(tag)[0]?.textContent;
+    const source = clean(get('News:Source') || get('source'), 80);
+    let title = clean(get('title'), 300);
+    if (source && title.endsWith(' - ' + source)) title = title.slice(0, -(source.length + 3));
+    const d = new Date(get('pubDate') || '');
+    return {
+      headline: title,
+      source,
+      date: isNaN(d) ? '' : d.toISOString().slice(0, 10),
+      time: isNaN(d) ? 0 : d.getTime(),
+      url: realLink(get('link')) || '',
+      snippet: clean(stripTags(get('description')), 400),
+    };
+  });
+}
+
+async function feed(query) {
+  try {
+    return items(await fetchXml('./api/bnews?' + new URLSearchParams({ q: query, format: 'rss', count: '20' })));
+  } catch (err) {
+    if (err.status === 404 || err.status === 405) throw err;
+    return items(await fetchXml('./api/gnews?' + new URLSearchParams({ q: query + ' when:3y', hl: 'en-US', gl: 'US', ceid: 'US:en' })));
+  }
+}
+
+// Street name + city from an address like "100 Sample Avenue, Detroit, MI (fictional)".
+function siteQuery(address) {
+  const a = String(address || '').replace(/\(.*?\)/g, '').trim();
+  if (!a) return null;
+  const parts = a.split(',').map((s) => s.trim()).filter(Boolean);
+  const street = (parts[0] || '').replace(/^\d+[\w-]*\s+/, '');
+  const city = parts[1] || '';
+  return street && city ? `"${street}" ${city}` : `"${a}"`;
+}
+
+export async function searchNewsFree(deal) {
+  const city = (deal.hqCity || '').split(',')[0].trim();
+  const queries = [];
+  if (deal.firmName) queries.push({ about: 'Borrower', q: `"${deal.firmName.replace(/,?\s+(LLC|Inc\.?|LP|Corp\.?|Co\.?)$/i, '')}"` });
+  if (deal.principalName) queries.push({ about: 'Borrower', q: `"${deal.principalName}"${city ? ' ' + city : ''}` });
+  if (deal.projectName) queries.push({ about: 'Site', q: `"${deal.projectName}"` });
+  const sq = siteQuery(deal.projectAddress);
+  if (sq) queries.push({ about: 'Site', q: sq });
+  if (!queries.length) throw new Error('Fill in the borrower name or project address first.');
+
+  const results = await Promise.allSettled(queries.map((x) => feed(x.q)));
+  const failed = results.filter((r) => r.status === 'rejected');
+  if (failed.length === results.length) {
+    const st = failed[0].reason?.status;
+    if (st === 404 || st === 405) throw new Error('News search only works on the published site (test link, dev site or public site), not here.');
+    if (st === 429) throw new Error('Too many searches in the last hour. Try again later.');
+    throw new Error('Couldn’t reach the news search. Check your connection and try again.');
+  }
+
+  const seen = new Set();
+  const items = [];
+  const counts = { Borrower: 0, Site: 0 };
+  const cutoff = Date.now() - 3 * 365 * 24 * 3600 * 1000;
+  results.forEach((r, i) => {
+    if (r.status !== 'fulfilled') return;
+    const { about, q } = queries[i];
+    r.value
+      .filter((a) => a.headline && (!a.time || a.time >= cutoff))
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 5)
+      .forEach((a) => {
+        const key = a.headline.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        const { level, why } = rate(`${a.headline} ${a.snippet}`);
+        counts[about]++;
+        items.push({
+          about, level, headline: a.headline, source: a.source, date: a.date, url: a.url,
+          summary: a.snippet && a.snippet !== a.headline ? a.snippet : '',
+          relevance: `${why}. Found by searching ${q}; confirm it is about this ${about === 'Site' ? 'site' : 'borrower'}.`,
+        });
+      });
+  });
+
+  const order = { red: 0, yellow: 1, green: 2 };
+  items.sort((a, b) => order[a.level] - order[b.level]);
+  const reds = items.filter((i) => i.level === 'red').length;
+  const summary = items.length
+    ? `Found ${counts.Borrower} article(s) about the borrower and ${counts.Site} about the site in the last 3 years${reds ? `; ${reds} mention warning words such as lawsuits or liens and should be read first` : ''}. Ratings come from keyword rules, not a full read, so open each article to confirm.`
+    : 'No news articles found in the last 3 years for the borrower or the site. That is common for small firms; still check court and property records.';
+  return { summary, items: items.slice(0, 15), citations: [] };
+}
