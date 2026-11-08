@@ -104,8 +104,8 @@ export async function searchNews(deal) {
 // /api/bnews and /api/gnews proxy routes, which need no key) + simple keyword rules for the rating.
 
 const RED_WORDS = /\b(lawsuit|sued|suing|litigation|foreclos\w*|bankrupt\w*|lien|liens|fraud\w*|indict\w*|charged|convicted|default\w*|eviction\w*|violation\w*|condemn\w*|stop.work|investigat\w*|scandal|settle\w*)\b/i;
-const YELLOW_WORDS = /\b(delay\w*|stall\w*|clos(e|es|ed|ing|ure)|vacan\w*|crime|shooting|layoff\w*|cuts?|over.budget|dispute\w*|opposition|oppose\w*|protest\w*|rezoning|zoning|contamina\w*|demolish\w*|demolition|tax.increase|price.drop|struggl\w*)\b/i;
-const GREEN_WORDS = /\b(award\w*|approv\w*|open(s|ed|ing)?|grant\w*|invest(s|ed|ment)|expan\w*|complet\w*|celebrat\w*|groundbreak\w*|launch\w*|honor\w*|wins?|funding|revitaliz\w*|new jobs|hiring)\b/i;
+const YELLOW_WORDS = /\b(delay\w*|stall\w*|clos(e|es|ed|ing|ure)|vacan\w*|crime|shooting|layoff\w*|cuts?|over.budget|dispute\w*|opposition|oppose\w*|protest\w*|rezoning|zoning|contamina\w*|demolish\w*|demolition|tax.increase|price.drop|struggl\w*|crash\w*|thie(f|ves)|theft|robber\w*|stolen|police|fire|flood\w*|homicide|killed|injur\w*|vandal\w*|blight\w*|downturn|losses|resign\w*|fined?|penalt\w*)\b/i;
+const GREEN_WORDS = /\b(award\w*|approv\w*|open(s|ed|ing)?|grant\w*|invest(s|ed|ment)|expan\w*|complet\w*|celebrat\w*|groundbreak\w*|launch\w*|honor\w*|wins?|funding|revitaliz\w*|new jobs|hiring|pledg\w*|redevelop\w*|presales?|sold.out|record|milestone|partnership|tenant|lease[sd]?|affordable)\b/i;
 
 function rate(text) {
   const r = text.match(RED_WORDS);
@@ -114,7 +114,7 @@ function rate(text) {
   if (y) return { level: 'yellow', why: `Mentions “${y[0]}”` };
   const g = text.match(GREEN_WORDS);
   if (g) return { level: 'green', why: `Mentions “${g[0]}”` };
-  return { level: 'yellow', why: 'No warning words found; read to judge relevance' };
+  return { level: 'yellow', why: 'No warning words found; read to judge' };
 }
 
 const stripTags = (s) => {
@@ -175,24 +175,30 @@ async function feed(query) {
   }
 }
 
-// Street name + city from an address like "100 Sample Avenue, Detroit, MI (fictional)".
-function siteQuery(address) {
+const norm = (t) => String(t || '').toLowerCase().replace(/[’'`]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const mentions = (text, must) => !must || (' ' + norm(text) + ' ').includes(' ' + norm(must) + ' ');
+
+// "100 Sample Avenue, Detroit, MI (fictional)" -> { exact: "100 Sample Avenue", street: "Sample Avenue", city: "Detroit" }
+function splitAddress(address) {
   const a = String(address || '').replace(/\(.*?\)/g, '').trim();
-  if (!a) return null;
-  const parts = a.split(',').map((s) => s.trim()).filter(Boolean);
-  const street = (parts[0] || '').replace(/^\d+[\w-]*\s+/, '');
-  const city = parts[1] || '';
-  return street && city ? `"${street}" ${city}` : `"${a}"`;
+  const parts = a.split(',').map((x) => x.trim()).filter(Boolean);
+  const exact = parts[0] || '';
+  const street = exact.replace(/^\d+[\w-]*\s+/, '');
+  return { exact: /^\d/.test(exact) ? exact : '', street, city: parts[1] || '' };
 }
 
 export async function searchNewsFree(deal) {
   const city = (deal.hqCity || '').split(',')[0].trim();
+  const addr = splitAddress(deal.projectAddress);
+  const siteCity = addr.city || city;
+  const firm = (deal.firmName || '').replace(/,?\s+(LLC|L\.L\.C\.|Inc\.?|LP|Corp\.?|Co\.?|Ltd\.?)$/i, '').trim();
+  // Bing handles quoted names poorly, so search loosely and keep only articles that mention the name.
   const queries = [];
-  if (deal.firmName) queries.push({ about: 'Borrower', q: `"${deal.firmName.replace(/,?\s+(LLC|Inc\.?|LP|Corp\.?|Co\.?)$/i, '')}"` });
-  if (deal.principalName) queries.push({ about: 'Borrower', q: `"${deal.principalName}"${city ? ' ' + city : ''}` });
-  if (deal.projectName) queries.push({ about: 'Site', q: `"${deal.projectName}"` });
-  const sq = siteQuery(deal.projectAddress);
-  if (sq) queries.push({ about: 'Site', q: sq });
+  if (firm) queries.push({ about: 'Borrower', q: firm, must: firm });
+  if (deal.principalName) queries.push({ about: 'Borrower', q: `${deal.principalName} ${city}`.trim(), must: deal.principalName });
+  if (deal.projectName) queries.push({ about: 'Site', q: `${deal.projectName} ${siteCity}`.trim(), must: deal.projectName });
+  if (addr.exact) queries.push({ about: 'Site', q: `${addr.exact} ${siteCity}`.trim(), must: addr.exact.split(/\s+/).slice(0, 2).join(' ') });
+  if (addr.street && siteCity) queries.push({ about: 'Site', q: `${addr.street} ${siteCity}`, must: addr.street.split(/\s+/)[0] });
   if (!queries.length) throw new Error('Fill in the borrower name or project address first.');
 
   const results = await Promise.allSettled(queries.map((x) => feed(x.q)));
@@ -210,9 +216,9 @@ export async function searchNewsFree(deal) {
   const cutoff = Date.now() - 3 * 365 * 24 * 3600 * 1000;
   results.forEach((r, i) => {
     if (r.status !== 'fulfilled') return;
-    const { about, q } = queries[i];
+    const { about, must } = queries[i];
     r.value
-      .filter((a) => a.headline && (!a.time || a.time >= cutoff))
+      .filter((a) => a.headline && (!a.time || a.time >= cutoff) && mentions(`${a.headline} ${a.snippet}`, must))
       .sort((a, b) => b.time - a.time)
       .slice(0, 5)
       .forEach((a) => {
@@ -224,7 +230,7 @@ export async function searchNewsFree(deal) {
         items.push({
           about, level, headline: a.headline, source: a.source, date: a.date, url: a.url,
           summary: a.snippet && a.snippet !== a.headline ? a.snippet : '',
-          relevance: `${why}. Found by searching ${q}; confirm it is about this ${about === 'Site' ? 'site' : 'borrower'}.`,
+          relevance: `(${why}.)`,
         });
       });
   });

@@ -177,7 +177,7 @@ export function analyze(deal) {
 
   // --- News found by the news check
   for (const n of deal.news || []) {
-    if (!n.headline || n.level === 'green' || /^No warning words/.test(n.relevance || '')) continue;
+    if (!n.headline || n.level === 'green' || /^\(?No warning words/.test(n.relevance || '')) continue;
     add(`News (${n.about || 'Borrower'})`, n.level === 'red' ? 'red' : 'yellow', n.headline,
       [n.summary, n.relevance, [n.source, n.date].filter(Boolean).join(', ')].filter(Boolean).join(' '));
   }
