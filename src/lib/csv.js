@@ -1,7 +1,7 @@
 import { emptyDeal } from './sampleDeal.js';
 
 // Spreadsheet layout: one row per field. Table rows repeat the table name.
-//   field,value,value2,value3,value4
+//   field,value,value2,value3,value4,value5,value6,value7,value8
 //   loanAmount,750000
 //   projectSources,Senior construction loan,4420000
 export const TABLES = {
@@ -11,6 +11,7 @@ export const TABLES = {
   financials: ['year', 'type', 'revenue', 'netIncome'],
   repaymentOptions: ['option'],
   team: ['name', 'company', 'role', 'bio'],
+  news: ['about', 'level', 'headline', 'source', 'date', 'url', 'summary', 'relevance'],
 };
 
 function parseCsv(text) {
@@ -60,7 +61,7 @@ const esc = (v) => {
 };
 
 export function dealToCsv(deal) {
-  const lines = ['field,value,value2,value3,value4'];
+  const lines = ['field,value,value2,value3,value4,value5,value6,value7,value8'];
   for (const key of Object.keys(emptyDeal)) {
     if (TABLES[key]) {
       for (const row of deal[key] || []) lines.push([key, ...TABLES[key].map((c) => row[c])].map(esc).join(','));

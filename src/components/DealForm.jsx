@@ -1,4 +1,54 @@
+import { useState } from 'react';
+import { searchNews, manualSearches } from '../lib/news.js';
+
 const YES_NO = ['', 'Yes', 'No'];
+
+function NewsCheck({ deal, set }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const links = manualSearches(deal);
+  const run = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const r = await searchNews(deal);
+      set({ ...deal, news: r.items, newsSummary: r.summary, newsCheckedAt: new Date().toISOString().slice(0, 10) });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const ready = deal.firmName || deal.principalName || deal.projectAddress;
+  return (
+    <div className="field wide news-check">
+      <p className="small">
+        Searches the web for recent news about the borrower, the principal and the area around the site, then rates each item red, yellow or green.
+        Results go into the memo and the flags list. Always open the source before relying on it.
+      </p>
+      <div className="actions">
+        <button type="button" className="btn" onClick={run} disabled={busy || !ready}>
+          {busy ? 'Searching… (up to a minute)' : deal.newsCheckedAt ? 'Search the news again' : 'Search the news'}
+        </button>
+      </div>
+      {!ready && <small>Fill in the borrower name or project address first.</small>}
+      {error && <p className="news-error" role="alert">{error}</p>}
+      {deal.newsSummary && (
+        <p className="news-summary">
+          <strong>{deal.newsCheckedAt ? `Search on ${deal.newsCheckedAt}: ` : ''}</strong>{deal.newsSummary}
+        </p>
+      )}
+      {links.length > 0 && (
+        <p className="small">
+          Search it yourself:{' '}
+          {links.map((l, i) => (
+            <span key={l.url}>{i > 0 && ' · '}<a href={l.url} target="_blank" rel="noopener noreferrer">{l.label}</a></span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function Field({ deal, set, name, label, type = 'text', hint, options, wide, prefix, suffix }) {
   const id = 'f-' + name;
@@ -141,7 +191,22 @@ export default function DealForm({ deal, set }) {
       </fieldset>
 
       <fieldset>
-        <legend>7. Development team</legend>
+        <legend>7. News check</legend>
+        <NewsCheck {...p} />
+        <RowTable {...p} name="news" label="News items for the memo" hint="Edit, delete or add items by hand. Red and yellow items also appear in the memo’s flags."
+          columns={[
+            { key: 'about', label: 'About', options: ['Borrower', 'Site'], flex: 1 },
+            { key: 'level', label: 'Rating', options: ['red', 'yellow', 'green'], flex: 1 },
+            { key: 'headline', label: 'Headline', flex: 3 },
+            { key: 'source', label: 'Source', flex: 1.4 },
+            { key: 'date', label: 'Date', flex: 1 },
+            { key: 'url', label: 'Link', flex: 2 },
+            { key: 'summary', label: 'What it says', flex: 3 },
+          ]} />
+      </fieldset>
+
+      <fieldset>
+        <legend>8. Development team</legend>
         <RowTable {...p} name="team" label="Team members" hint="Short bio goes in the memo appendix."
           columns={[
             { key: 'name', label: 'Name' },

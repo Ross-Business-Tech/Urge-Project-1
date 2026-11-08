@@ -43,6 +43,9 @@ export const emptyDeal = {
   exitMonth: '',
   repaymentOptions: [],
   team: [],
+  news: [],
+  newsSummary: '',
+  newsCheckedAt: '',
   underwriterNotes: '',
 };
 
@@ -122,6 +125,13 @@ export const sampleDeal = {
     { name: 'Jordan Avery', company: 'Northbrook Builders Collective', role: 'Developer / Principal', bio: 'Founder; leads acquisition, financing and construction oversight. 9 years in commercial construction and development.' },
     { name: 'Sam Rivera', company: 'Sample Design Studio', role: 'Architect', bio: 'Licensed architect with 15 years of small-format retail and office design experience.' },
     { name: 'Taylor Brooks', company: 'Example Construction Co.', role: 'General Contractor', bio: 'GC with a portfolio of 30+ commercial projects under $10M in the region.' },
+  ],
+  newsSummary: 'SAMPLE ONLY: these news items are made up to show how results look. Press “Search the news” on the team site for real results.',
+  newsCheckedAt: '',
+  news: [
+    { about: 'Site', level: 'green', headline: 'Sample: City approves streetscape upgrades along the corridor', source: 'Made-up sample', date: '2026-06', url: '', summary: 'New lighting, sidewalks and bike lanes planned within two blocks of the site.', relevance: 'Supports retail foot traffic and leasing.' },
+    { about: 'Site', level: 'yellow', headline: 'Sample: Nearby grocery store announces closure', source: 'Made-up sample', date: '2026-08', url: '', summary: 'A grocery anchor half a mile away will close next spring.', relevance: 'Could reduce foot traffic; ask the borrower about retail tenant demand.' },
+    { about: 'Borrower', level: 'green', headline: 'Sample: Local builder recognized for on-time small commercial projects', source: 'Made-up sample', date: '2025-11', url: '', summary: 'Regional business journal profiles the firm’s completed projects.', relevance: 'Third-party support for the sponsor’s track record.' },
   ],
   underwriterNotes: '',
 };
