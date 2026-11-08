@@ -1,14 +1,14 @@
 const ICON = { pass: '✔', warn: '!', fail: '✖' };
 const LABEL = { fail: 'Fix before sharing', warn: 'Worth a look', pass: 'Passed' };
 
-export default function VerificationReport({ report, onRecheck }) {
+export default function VerificationReport({ report, onRecheck, checking }) {
   const { items, counts } = report;
   const groups = ['fail', 'warn'].map((level) => [level, items.filter((i) => i.level === level)]).filter(([, l]) => l.length);
   const passed = items.filter((i) => i.level === 'pass');
   const status = counts.fail ? 'fail' : counts.warn ? 'warn' : 'pass';
 
   return (
-    <section className={`verify no-print verify-${status}`} aria-label="Verification report">
+    <section className={`verify no-print verify-${status}${checking ? ' checking' : ''}`} aria-label="Verification report" aria-busy={checking}>
       <div className="verify-head">
         <div>
           <strong>Verification report</strong>
@@ -18,8 +18,14 @@ export default function VerificationReport({ report, onRecheck }) {
             {!counts.fail && !counts.warn ? ' All checks passed' : ''} · {counts.pass} passed
           </span>
         </div>
-        <button className="btn ghost" onClick={onRecheck}>Re-check the memo text</button>
+        <button className="btn ghost recheck" onClick={onRecheck} disabled={checking}>
+          {checking ? <><span className="spinner" aria-hidden="true" /> Checking<span className="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></> : 'Re-check the memo text'}
+        </button>
       </div>
+      {report.checkedAt && !checking && (
+        <p className="small verify-time">✔ Checked at {new Date(report.checkedAt).toLocaleTimeString()}</p>
+      )}
+      {checking && <p className="small verify-time" role="status">Re-reading the memo and re-checking every figure…</p>}
       <p className="small verify-note">
         Checks the numbers, the math, the Red/Yellow/Green ratings and any figures you typed into the memo. You still make the final call.
       </p>

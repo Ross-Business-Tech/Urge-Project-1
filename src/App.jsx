@@ -42,6 +42,7 @@ export default function App() {
   const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
   const [spin, setSpin] = useState(0); // changes on every randomize/sample load so the form visibly refills
   const [rolling, setRolling] = useState(false);
+  const [checking, setChecking] = useState(false);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
 
@@ -98,18 +99,24 @@ export default function App() {
   };
 
   const runChecks = () => {
-    if (generated) setReport(verifyAll(generated.deal, memoRef.current?.innerText || ''));
+    if (!generated || checking) return;
+    setChecking(true);
+    // The checks themselves are instant; a short pause makes it visible that they re-ran
+    setTimeout(() => {
+      setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || ''), checkedAt: Date.now() });
+      setChecking(false);
+    }, 900);
   };
 
   // Check the memo as soon as it is written
   useEffect(() => {
-    if (generated) setReport(verifyAll(generated.deal, memoRef.current?.innerText || ''));
+    if (generated) setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || ''), checkedAt: Date.now() });
   }, [generated]);
 
   // Re-check the written text (including hand edits) before anything leaves the app
   const guard = (action) => {
     const r = verifyAll(generated.deal, memoRef.current?.innerText || '');
-    setReport(r);
+    setReport({ ...r, checkedAt: Date.now() });
     if (r.counts.fail && !confirm(`${r.counts.fail} check(s) failed. Review the Verification report first.\n\nShare the memo anyway?`)) return;
     action();
   };
@@ -225,7 +232,7 @@ export default function App() {
                 <button className="btn text" onClick={() => setTab('data')}>← Edit data</button>
               </div>
             </div>
-            {report && <VerificationReport report={report} onRecheck={runChecks} />}
+            {report && <VerificationReport report={report} onRecheck={runChecks} checking={checking} />}
             <div className="paper" ref={memoRef} contentEditable suppressContentEditableWarning spellCheck key={generated.id}>
               <Memo deal={generated.deal} />
             </div>
