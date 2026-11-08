@@ -3,7 +3,7 @@ import DealForm from './components/DealForm.jsx';
 import Memo from './components/Memo.jsx';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
 import { sampleLoans } from './lib/sampleLoans.js';
-import { randomDeal } from './lib/randomDeal.js';
+import { randomDeal, MAX_MISTAKES } from './lib/randomDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
 import { verifyAll } from './lib/verify/index.js';
@@ -192,7 +192,9 @@ export default function App() {
               </label>
               <label><span>Planted mistakes</span>
                 <select value={rand.mistakes} onChange={(e) => setRand({ ...rand, mistakes: e.target.value })} aria-label="Number of planted mistakes">
-                  <option value="0">None</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                  <option value="0">None</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => n < MAX_MISTAKES).map((n) => <option key={n} value={n}>{n}</option>)}
+                  <option value={MAX_MISTAKES}>Maximum ({MAX_MISTAKES})</option>
                 </select>
               </label>
               <label><span>Last seed (type one to repeat it)</span>

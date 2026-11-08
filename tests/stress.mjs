@@ -5,7 +5,7 @@ import { analyze } from '../src/lib/analysis.js';
 import { verifyAll } from '../src/lib/verify/index.js';
 import { rateIndependent, checkRatings, RANK } from '../src/lib/verify/ratings.js';
 import { checkMemoText } from '../src/lib/verify/memoText.js';
-import { randomDeal, MISTAKES } from '../src/lib/randomDeal.js';
+import { randomDeal, MISTAKES, MAX_MISTAKES } from '../src/lib/randomDeal.js';
 import { readFactsFromHtml, applyFacts } from '../src/lib/verify/memoFacts.js';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -152,6 +152,28 @@ for (const [type, m] of Object.entries(MISTAKES)) {
     return stuck.length === 0 || `still flagged after fixing the memo in ${stuck.length}/${shown} deals, e.g. ${stuck.slice(0, 3).join(', ')}`;
   });
 }
+test(`all ${MAX_MISTAKES} kinds of mistake planted at once: every one is caught`, () => {
+  const miss = [];
+  for (let i = 0; i < 80; i++) {
+    const r = gen0(i + 40000, { profile: 'any', mistakes: MAX_MISTAKES });
+    if (r.planted.length !== MAX_MISTAKES) return `planted ${r.planted.length}, expected ${MAX_MISTAKES}`;
+    const items = verifyAll(r.deal, memoText(r.deal), readFactsFromHtml(memoHtml(r.deal))).items;
+    for (const p of r.planted) if (!items.some((it) => it.level === p.level && p.re.test(it.title))) miss.push(`#${r.seed} ${p.type}`);
+  }
+  return miss.length === 0 || `${miss.length} missed, e.g. ${miss.slice(0, 4).join(', ')}`;
+});
+test(`...and fixing the memo clears all ${MAX_MISTAKES} at once`, () => {
+  const stuck = [];
+  for (let i = 0; i < 80; i++) {
+    const good = gen0(i + 40000, { profile: 'any' }).deal;
+    const bad = gen0(i + 40000, { profile: 'any', mistakes: MAX_MISTAKES });
+    // same seed => same underlying deal; the memo of the correct deal is the "fixed" memo
+    const hg = memoHtml(good);
+    const after = verifyAll(bad.deal, hg.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' '), readFactsFromHtml(hg)).items;
+    for (const p of bad.planted) if (after.some((it) => it.level !== 'pass' && it.area !== 'Memo vs form' && p.re.test(it.title))) stuck.push(`#${bad.seed} ${p.type}`);
+  }
+  return stuck.length === 0 || `${stuck.length} still flagged, e.g. ${stuck.slice(0, 4).join(', ')}`;
+});
 test('fixing ONE of several mentions of the rate leaves a "differs across the memo" failure', () => {
   const d = gen0(31, { profile: 'any' }).deal; const h = memoHtml(d);
   const r = String(Number(d.interestRate));
@@ -243,7 +265,7 @@ test('worsening a random deal never improves a rating', () => {
   const missed = [];
   const n = Math.max(40, Math.round(COUNT / 2));
   for (let i = 0; i < n; i++) {
-    const r = gen(i + 50000, { profile: 'any', mistakes: 1 + (i % 3) });
+    const r = gen(i + 50000, { profile: 'any', mistakes: 1 + (i % MAX_MISTAKES) });
     const found = verifyAll(r.deal).items;
     for (const p of r.planted) {
       stats[p.type].planted++;
@@ -251,7 +273,7 @@ test('worsening a random deal never improves a rating', () => {
       else missed.push(`#${r.seed} ${p.type}`);
     }
   }
-  test(`every planted mistake is caught (${n} deals, 1-3 mistakes each)`, () => {
+  test(`every planted mistake is caught (${n} deals, 1 to ${MAX_MISTAKES} mistakes each)`, () => {
     for (const t of types) console.log(`      ${t.padEnd(22)} ${stats[t].caught}/${stats[t].planted} caught`);
     return missed.length === 0 || `${missed.length} missed, e.g. ${missed.slice(0, 4).join(', ')}`;
   });

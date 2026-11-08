@@ -73,6 +73,9 @@ export const MISTAKES = {
   'project-cost': { level: 'warn', re: /Total project cost differs/, apply: (d) => { d.totalProjectCost = String(Math.round(Number(d.totalProjectCost) * 1.15 / 1000) * 1000); } },
 };
 
+// The most mistakes that can be planted at once (some pairs would hide each other, so each group counts once)
+export const MAX_MISTAKES = new Set(Object.entries(MISTAKES).map(([k, m]) => m.group || k)).size;
+
 // Splits a total into rows of whole thousands that add up exactly.
 function split(total, weights, labels) {
   const sumW = weights.reduce((a, b) => a + b, 0);
