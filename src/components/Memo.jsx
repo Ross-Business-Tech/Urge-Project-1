@@ -62,7 +62,7 @@ function MemoDoc({ deal }) {
           <div><dt>To</dt><dd>{v(deal.committee, 'Investment committee')}</dd></div>
           <div><dt>From</dt><dd>{v(deal.preparedBy, 'Underwriter')}</dd></div>
           <div><dt>Date</dt><dd>{fmtDate(deal.memoDate)}</dd></div>
-          <div><dt>Overall rating</dt><dd><Badge level={a.overall} /></dd></div>
+          <div><dt>Overall rating</dt><dd data-fact="overall"><Badge level={a.overall} /></dd></div>
         </dl>
       </header>
 
@@ -223,7 +223,7 @@ function MemoDoc({ deal }) {
                   const g = a.growth.find((x) => x.year === r.year);
                   return (
                     <tr key={i} className={String(r.type).startsWith('P') ? 'projected' : ''}>
-                      <td>{r.year}</td><td>{r.type}</td><td className="num">{money(r.revenue)}</td><td className="num">{money(r.netIncome)}</td>
+                      <td data-fact="finYear">{r.year}</td><td data-fact="finType">{r.type}</td><td className="num" data-fact="finRev">{money(r.revenue)}</td><td className="num" data-fact="finNet">{money(r.netIncome)}</td>
                       <td className="num opt">{num(r.revenue) ? pct(num(r.netIncome) / num(r.revenue)) : '–'}</td>
                       <td className="num opt">{g ? pct(g.g, 0) : '–'}</td>
                     </tr>
@@ -238,7 +238,7 @@ function MemoDoc({ deal }) {
               {a.avgActualGrowth !== null && <li>Historical revenue growth has averaged {pct(a.avgActualGrowth, 0)} per year.</li>}
               {firstProj && lastProj && lastActual && <li>The borrower projects revenue rising to {money(lastProj.revenue)} by {lastProj.year}, {pct(num(lastProj.revenue) / num(lastActual.revenue) - 1, 0)} above {lastActual.year}.</li>}
               {has(deal.ownerSharePct) && <li>{principal} owns {num(deal.ownerSharePct)}% of {firm}{lastProj ? `, implying a ${money((num(lastProj.netIncome) * num(deal.ownerSharePct)) / 100)} share of projected ${lastProj.year} net income` : ''}.</li>}
-              {a.cash > 0 && <li>Cash on hand of {money(a.cash)}.</li>}
+              {has(deal.cash) && <li>Cash on hand of {money(a.cash)}.</li>}
             </ul>
           </>
         ) : <p><Missing what="Firm financials" /></p>}
@@ -253,7 +253,7 @@ function MemoDoc({ deal }) {
         </p>
         <h3>Repayment options, in priority order</h3>
         {deal.repaymentOptions?.length ? (
-          <ol>{deal.repaymentOptions.map((r, i) => <li key={i}>{r.option}</li>)}</ol>
+          <ol>{deal.repaymentOptions.map((r, i) => <li key={i} data-fact="repay">{r.option}</li>)}</ol>
         ) : <p><Missing what="Repayment options" /></p>}
         {a.loan > 0 && (
           <BarCompare

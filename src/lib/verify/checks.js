@@ -18,7 +18,7 @@ export function checkDeal(deal) {
     ['projectName', 'Project name'], ['totalProjectCost', 'Total project cost'], ['exitProceeds', 'Expected repayment proceeds'],
   ];
   const missing = required.filter(([k]) => !has(deal[k])).map(([, l]) => l);
-  if (missing.length) add('Data', 'warn', `${missing.length} required field(s) empty`, missing.join(', '));
+  if (missing.length) add('Data', 'warn', `${missing.length} required field(s) empty`, `${missing.join(', ')}. Fill it in where the memo shows a [... to be added] placeholder; fields the memo does not show until they are filled in need to be added on the Deal data tab.`);
   else add('Data', 'pass', 'All required fields are filled in');
 
   // --- Plausible ranges

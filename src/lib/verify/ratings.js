@@ -57,8 +57,10 @@ const FLAG_MATCH = {
 const LABEL = { experience: 'Experience', leverage: 'Debt-to-equity', cash: 'Cash cushion', repayment: 'Repayment coverage', walk: 'Walk Score', mission: 'Mission alignment' };
 
 // Compare the app's ratings with the independent ones. Returns check items.
-export function checkRatings(deal) {
+export function checkRatings(deal, memoOverall) {
   const a = analyze(deal);
+  // If the memo's overall rating was changed by hand, judge the consistency of what the memo now says
+  const overall = ['green', 'yellow', 'red'].includes(memoOverall) ? memoOverall : a.overall;
   const mine = rateIndependent(deal);
   const items = [];
   let compared = 0;
@@ -79,9 +81,9 @@ export function checkRatings(deal) {
   // Proposed consistency rule: overall must not look better than the red flags.
   const reds = a.flags.filter((f) => f.level === 'red');
   const hardReds = reds.filter((f) => R.criticalRedAreas.includes(f.area));
-  if (hardReds.length && a.overall !== 'red') {
-    items.push({ area: 'Ratings', level: 'warn', title: `Overall is ${a.overall}, but there is a red item in a critical area`, detail: `"${hardReds[0].title}" (${hardReds[0].area}). Proposed rule: a red flag in ${R.criticalRedAreas.join(', ')} should make the overall rating red. Confirm with URGE.` });
-  } else if (reds.length && a.overall === 'green') {
+  if (hardReds.length && overall !== 'red') {
+    items.push({ area: 'Ratings', level: 'warn', title: `Overall is ${overall}, but there is a red item in a critical area`, detail: `"${hardReds[0].title}" (${hardReds[0].area}). Proposed rule: a red flag in ${R.criticalRedAreas.join(', ')} should make the overall rating red. Confirm with URGE.` });
+  } else if (reds.length && overall === 'green') {
     items.push({ area: 'Ratings', level: 'warn', title: 'Overall is green, but the memo contains a red item', detail: `"${reds[0].title}". Proposed rule: any red flag makes the overall rating at least yellow.` });
   } else {
     items.push({ area: 'Ratings', level: 'pass', title: 'Overall rating is consistent with the red flags', detail: '' });
