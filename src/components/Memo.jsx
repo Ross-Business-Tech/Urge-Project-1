@@ -14,7 +14,7 @@ function Note({ children }) {
   return <aside className="callout">{children}</aside>;
 }
 
-function AmountTable({ rows, total, totalLabel = 'Total', base }) {
+function AmountTable({ rows, total, totalLabel = 'Total', base, fact }) {
   if (!rows?.length) return <p><Missing what="Table" /></p>;
   return (
     <table className="money-table">
@@ -23,7 +23,7 @@ function AmountTable({ rows, total, totalLabel = 'Total', base }) {
       </thead>
       <tbody>
         {rows.map((r, i) => (
-          <tr key={i}><td>{r.label}</td><td className="num">{money(r.amount)}</td><td className="num">{pct(num(r.amount) / (base || total || 1), 0)}</td></tr>
+          <tr key={i}><td>{r.label}</td><td className="num" data-fact={fact}>{money(r.amount)}</td><td className="num">{pct(num(r.amount) / (base || total || 1), 0)}</td></tr>
         ))}
       </tbody>
       <tfoot>
@@ -90,17 +90,17 @@ function MemoDoc({ deal }) {
         <p><strong>Project location.</strong> {project}, {v(deal.projectAddress, 'Address')}{has(deal.assetType) ? `, ${deal.assetType.toLowerCase()}` : ''}{num(deal.squareFeet) ? ` of about ${num(deal.squareFeet).toLocaleString()} sq ft` : ''}.</p>
 
         <h3>Use of {fund} loan proceeds</h3>
-        <AmountTable rows={deal.urgeUses} total={a.urgeUsesTotal} totalLabel={`Total ${fund} loan`} />
+        <AmountTable fact="loanUse" rows={deal.urgeUses} total={a.urgeUsesTotal} totalLabel={`Total ${fund} loan`} />
 
         <h3>Overall project sources and uses</h3>
         <div className="two-col">
           <div>
             <h4>Sources</h4>
-            <AmountTable rows={deal.projectSources} total={a.srcTotal} totalLabel="Total sources" />
+            <AmountTable fact="source" rows={deal.projectSources} total={a.srcTotal} totalLabel="Total sources" />
           </div>
           <div>
             <h4>Uses</h4>
-            <AmountTable rows={deal.projectUses} total={a.useTotal} totalLabel="Total uses" />
+            <AmountTable fact="use" rows={deal.projectUses} total={a.useTotal} totalLabel="Total uses" />
           </div>
         </div>
         {deal.projectSources?.length > 0 && (

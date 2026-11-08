@@ -63,8 +63,9 @@ export function allowedNumbers(deal) {
   return [...set].filter((v) => v !== 0);
 }
 
-export function checkMemoText(text, deal) {
-  const allowed = allowedNumbers(deal);
+// `effective` (optional) is the deal as the memo now reads, so hand-fixed figures that are consistent are accepted
+export function checkMemoText(text, deal, effective) {
+  const allowed = effective ? [...allowedNumbers(deal), ...allowedNumbers(effective)] : allowedNumbers(deal);
   const found = new Set((text || '').match(TOKEN) || []);
   const bad = [];
   let checked = 0;

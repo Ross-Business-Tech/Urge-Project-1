@@ -6,6 +6,7 @@ import { verifyAll } from '../src/lib/verify/index.js';
 import { rateIndependent, checkRatings, RANK } from '../src/lib/verify/ratings.js';
 import { checkMemoText } from '../src/lib/verify/memoText.js';
 import { randomDeal, MISTAKES } from '../src/lib/randomDeal.js';
+import { readFactsFromHtml } from '../src/lib/verify/memoFacts.js';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
@@ -13,6 +14,7 @@ import { createServer } from 'vite';
 // Renders the real memo screen to plain text (no browser needed)
 const vite = await createServer({ root: new URL('..', import.meta.url).pathname, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 const Memo = (await vite.ssrLoadModule('/src/components/Memo.jsx')).default;
+const memoHtml = (deal) => renderToStaticMarkup(React.createElement(Memo, { deal }));
 const memoText = (deal) => renderToStaticMarkup(React.createElement(Memo, { deal })).replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ');
 
 const results = [];
@@ -69,6 +71,46 @@ test('"$6.8M" matches 6,800,000 (rounding allowed)', () => checkMemoText('Projec
 test('the real, unedited memo passes (sample deal)', () => { const r = checkMemoText(memoText(base()), base()).filter((i) => i.level === 'fail'); return r.length === 0 || r.map((i) => i.title).join('; '); });
 test('real memo + one hand-edit ($750,000 -> $570,000) is caught', () => checkMemoText(memoText(base()).replace('$750,000', '$570,000'), base()).some((i) => i.level === 'fail' && i.title.includes('$570,000')));
 
+// ---------------------------------------------------------------- 3b. Fixing the memo by hand, then re-checking
+section('3b. Hand-fixing the memo and re-checking (the report must follow the memo)');
+const bad = mut({ loanAmount: '800000' }); // loan uses add to $750,000, so loan != uses
+const html0 = memoHtml(bad);
+const recheck = (html, deal = bad) => verifyAll(deal, html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' '), readFactsFromHtml(html));
+const editLoan = (html, fn) => { let n = 0; return html.replace(/\$800,000/g, () => fn(n++)); }; // every printed mention of the $800,000 loan
+const editFact = (html, fact, fn) => html.replace(new RegExp(`(<(\\w+)[^>]*\\sdata-fact="${fact}"[^>]*>)(.*?)(</\\2>)`, 'g'), (m, open, tag, inner, close) => open + fn(inner) + close);
+test('the loan amount is found in all 6 places the memo states it', () => readFactsFromHtml(html0).loan.length === 6 || readFactsFromHtml(html0).loan.length);
+test('before any edit: "loan uses do not equal the loan amount" is reported', () => recheck(html0).items.some((i) => /Loan uses do not equal/.test(i.title)));
+test('changing the loan amount everywhere to match the uses clears that flag', () => {
+  const r = recheck(editLoan(html0, () => '$750,000'));
+  return (!r.items.some((i) => /Loan uses do not equal/.test(i.title)) && r.items.some((i) => i.level === 'pass' && /Loan uses equal/.test(i.title))) || 'flag still there';
+});
+test('...and says the memo now differs from the deal form (warning, not a failure)', () => {
+  const r = recheck(editLoan(html0, () => '$750,000'));
+  return (r.items.some((i) => i.level === 'warn' && /differs from the deal form/.test(i.title)) && r.counts.fail === 0) || JSON.stringify(r.items.filter((i) => i.level !== 'pass').map((i) => i.level + ' ' + i.title));
+});
+test('changing only ONE mention of the loan amount is caught', () => {
+  const r = recheck(editLoan(html0, (n) => (n === 0 ? '$750,000' : '$800,000')));
+  return r.items.some((i) => i.level === 'fail' && /differs across the memo/.test(i.title));
+});
+test('fixing the loan-uses table instead (so it adds to $800,000) also clears the flag', () => {
+  let n = 0;
+  const r = recheck(editFact(html0, 'loanUse', (t) => (n++ === 0 ? '$' + (Number(t.replace(/[^0-9]/g, '')) + 50000).toLocaleString('en-US') : t)));
+  return !r.items.some((i) => /Loan uses do not equal/.test(i.title)) || 'flag still there';
+});
+test('an invented loan amount used consistently ($999,999 everywhere) is a FAIL', () => {
+  const r = recheck(editLoan(html0, () => '$999,999'));
+  return r.items.some((i) => i.level === 'fail' && /differs from the deal form/.test(i.title));
+});
+test('typing the amount without $ or commas (750000) is still read', () => {
+  const r = recheck(editLoan(html0, () => '750000'));
+  return r.items.some((i) => /Loan uses equal/.test(i.title)) || 'not read';
+});
+test('rewording one sentence is reported as "found in only 5 of 6 places"', () => {
+  const r = recheck(html0.replace('enterprise loan', 'financing request').replace(/\$800,000/, (m) => m));
+  return r.items.some((i) => /only 5 of 6/.test(i.title)) || JSON.stringify(r.items.filter((i) => i.area === 'Memo vs form').map((i) => i.title));
+});
+test('re-checking an untouched memo changes nothing', () => JSON.stringify(recheck(html0).counts) === JSON.stringify(verifyAll(bad, memoText(bad), readFactsFromHtml(html0)).counts));
+
 // ---------------------------------------------------------------- 4. Mutation tests
 section('4. Mutation: making a deal worse must never improve a rating');
 const worse = {
@@ -113,7 +155,7 @@ test('overall never better than the worst merit', () => {
 });
 test('real memo text passes the memo-text check (no false alarms)', () => {
   const bad = [];
-  for (const r of clean) { const f = checkMemoText(memoText(r.deal), r.deal).filter((i) => i.level === 'fail'); if (f.length) bad.push({ seed: r.seed, t: f[0].title }); }
+  for (const r of clean) { const h = memoHtml(r.deal); const f = recheck(h, r.deal).items.filter((i) => i.level === 'fail'); if (f.length) bad.push({ seed: r.seed, t: f[0].title }); }
   return bad.length === 0 || `${bad.length} false alarms, e.g. ${bad.slice(0, 3).map((b) => `#${b.seed} ${b.t}`).join(' | ')}`;
 });
 for (const [prof, want] of [['strong', 'green'], ['mid', 'yellow'], ['weak', 'red']]) {

@@ -7,6 +7,7 @@ import { randomDeal } from './lib/randomDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
 import { verifyAll } from './lib/verify/index.js';
+import { readFactsFromDom } from './lib/verify/memoFacts.js';
 import VerificationReport from './components/VerificationReport.jsx';
 import './App.css';
 
@@ -100,19 +101,19 @@ export default function App() {
     setChecking(true);
     // The checks themselves are instant; a short pause makes it visible that they re-ran
     setTimeout(() => {
-      setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || ''), checkedAt: Date.now() });
+      setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined), checkedAt: Date.now() });
       setChecking(false);
     }, 900);
   };
 
   // Check the memo as soon as it is written
   useEffect(() => {
-    if (generated) setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || ''), checkedAt: Date.now() });
+    if (generated) setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined), checkedAt: Date.now() });
   }, [generated]);
 
   // Re-check the written text (including hand edits) before anything leaves the app
   const guard = (action) => {
-    const r = verifyAll(generated.deal, memoRef.current?.innerText || '');
+    const r = verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined);
     setReport({ ...r, checkedAt: Date.now() });
     if (r.counts.fail && !confirm(`${r.counts.fail} check(s) failed. Review the Verification report first.\n\nShare the memo anyway?`)) return;
     action();
