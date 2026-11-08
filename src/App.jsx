@@ -4,6 +4,8 @@ import Memo from './components/Memo.jsx';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
+import { verifyAll } from './lib/verify/index.js';
+import VerificationReport from './components/VerificationReport.jsx';
 import './App.css';
 
 const STORE = 'memo-drafter-deal-v1';
@@ -33,6 +35,7 @@ export default function App() {
   const [tab, setTab] = useState('data');
   const [generated, setGenerated] = useState(null); // { deal, id }
   const [msg, setMsg] = useState(null);
+  const [report, setReport] = useState(null);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
 
@@ -63,6 +66,23 @@ export default function App() {
     setGenerated({ deal: structuredClone(deal), id: Date.now() });
     setTab('memo');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const runChecks = () => {
+    if (generated) setReport(verifyAll(generated.deal, memoRef.current?.innerText || ''));
+  };
+
+  // Check the memo as soon as it is written
+  useEffect(() => {
+    if (generated) setReport(verifyAll(generated.deal, memoRef.current?.innerText || ''));
+  }, [generated]);
+
+  // Re-check the written text (including hand edits) before anything leaves the app
+  const guard = (action) => {
+    const r = verifyAll(generated.deal, memoRef.current?.innerText || '');
+    setReport(r);
+    if (r.counts.fail && !confirm(`${r.counts.fail} check(s) failed. Review the Verification report first.\n\nShare the memo anyway?`)) return;
+    action();
   };
 
   const memoHtml = () => memoRef.current?.innerHTML || '';
@@ -139,12 +159,13 @@ export default function App() {
                 <span className="small">Click any text in the memo to edit it.</span>
               </div>
               <div className="actions">
-                <button className="btn" onClick={downloadWord}>Download for Word</button>
-                <button className="btn ghost" onClick={() => window.print()}>Print / PDF</button>
-                <button className="btn ghost" onClick={copyText}>Copy text</button>
+                <button className="btn" onClick={() => guard(downloadWord)}>Download for Word</button>
+                <button className="btn ghost" onClick={() => guard(() => window.print())}>Print / PDF</button>
+                <button className="btn ghost" onClick={() => guard(copyText)}>Copy text</button>
                 <button className="btn text" onClick={() => setTab('data')}>← Edit data</button>
               </div>
             </div>
+            {report && <VerificationReport report={report} onRecheck={runChecks} />}
             <div className="paper" ref={memoRef} contentEditable suppressContentEditableWarning spellCheck key={generated.id}>
               <Memo deal={generated.deal} />
             </div>
