@@ -39,6 +39,9 @@ export default function App() {
   const [msg, setMsg] = useState(null);
   const [report, setReport] = useState(null);
   const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
+  const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
+  const [spin, setSpin] = useState(0); // changes on every randomize/sample load so the form visibly refills
+  const [rolling, setRolling] = useState(false);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
 
@@ -76,11 +79,17 @@ export default function App() {
     if (!ex) return;
     setDeal(structuredClone(ex.deal));
     setGenerated(null); // the old memo no longer matches this deal
+    setSpin((n) => n + 1);
     flash(`Loaded sample: ${ex.name}.`);
   };
 
-  const randomize = () => {
-    const seed = rand.seed.trim() ? Number(rand.seed) || 1 : Math.floor(Math.random() * 1e6) + 1;
+  const randomize = (repeat = false) => {
+    // A new random deal every click. A typed seed is used once (to repeat a deal), then cleared.
+    const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : Math.floor(Math.random() * 1e6) + 1;
+    setSeedTyped(false);
+    setSpin((n) => n + 1);
+    setRolling(true);
+    setTimeout(() => setRolling(false), 700);
     const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
     setDeal(r.deal);
     setGenerated(null);
@@ -181,16 +190,19 @@ export default function App() {
                   <option value="0">None</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                 </select>
               </label>
-              <label><span>Seed (to repeat a deal)</span>
-                <input inputMode="numeric" placeholder="random" value={rand.seed} onChange={(e) => setRand({ ...rand, seed: e.target.value.replace(/\D/g, '') })} aria-label="Random seed" />
+              <label><span>Last seed (type one to repeat it)</span>
+                <input inputMode="numeric" placeholder="random" value={rand.seed} onChange={(e) => { setSeedTyped(true); setRand({ ...rand, seed: e.target.value.replace(/\D/g, '') }); }} aria-label="Random seed" />
               </label>
-              <button className="btn" onClick={randomize}>Randomize the whole deal</button>
+              <button className={'btn dice' + (rolling ? ' rolling' : '')} onClick={() => randomize(false)}><span className="die" aria-hidden="true">🎲</span> Randomize the whole deal</button>
+              <button className="btn ghost" disabled={!rand.seed} onClick={() => randomize(true)}>Repeat this seed</button>
             </div>
           </div>
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>
 
-        <DealForm deal={deal} set={setDeal} />
+        <div key={spin} className={spin ? 'shuffle' : ''}>
+          <DealForm deal={deal} set={setDeal} />
+        </div>
 
         <div className="sticky-cta">
           <button className="btn big" onClick={generate}>Write the memo →</button>

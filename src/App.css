@@ -166,3 +166,22 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .samples label span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
 .samples select, .samples input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; background: #fbfcfd; min-width: 0; }
 .random { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+
+/* Randomize animation: the dice spins and every section of the form slides in and flashes */
+.dice .die { display: inline-block; }
+.dice.rolling .die { animation: dice-roll .65s ease-in-out; }
+@keyframes dice-roll { 0% { transform: rotate(0) scale(1); } 40% { transform: rotate(280deg) scale(1.5); } 100% { transform: rotate(720deg) scale(1); } }
+.shuffle fieldset { animation: form-shuffle .6s ease-out both; }
+.shuffle fieldset:nth-child(2) { animation-delay: .07s; }
+.shuffle fieldset:nth-child(3) { animation-delay: .14s; }
+.shuffle fieldset:nth-child(4) { animation-delay: .21s; }
+.shuffle fieldset:nth-child(5) { animation-delay: .28s; }
+.shuffle fieldset:nth-child(6) { animation-delay: .35s; }
+@keyframes form-shuffle {
+  0% { opacity: 0; transform: translateY(18px) scale(.985); background: #fff3c4; }
+  60% { opacity: 1; background: #fff3c4; }
+  100% { opacity: 1; transform: none; background: var(--surface); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dice.rolling .die, .shuffle fieldset { animation: none; }
+}
