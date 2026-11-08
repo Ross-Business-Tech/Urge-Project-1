@@ -4,6 +4,10 @@ import { num, has, money, pct, fmtDate, or } from '../lib/format.js';
 import { BarCompare, StackedShare, Columns } from './Charts.jsx';
 import { safeUrl } from '../lib/news.js';
 
+// Marks a number so Viewing mode can show where it came from (see lib/sources.js).
+// r = a Deal data field ("loanAmount", "projectSources.2.amount"); c = a calculation ("annualInterest").
+const Src = ({ r, c, children }) => <span className="src" data-src={c ? `calc:${c}` : r}>{children}</span>;
+
 const Missing = ({ what }) => <span className="missing">[{what}: to be added]</span>;
 const v = (val, what) => (has(val) ? val : <Missing what={what} />);
 
@@ -15,7 +19,7 @@ function Note({ children }) {
   return <aside className="callout">{children}</aside>;
 }
 
-function AmountTable({ rows, total, totalLabel = 'Total', base }) {
+function AmountTable({ name, rows, total, totalLabel = 'Total', base }) {
   if (!rows?.length) return <p><Missing what="Table" /></p>;
   return (
     <table className="money-table">
@@ -24,11 +28,11 @@ function AmountTable({ rows, total, totalLabel = 'Total', base }) {
       </thead>
       <tbody>
         {rows.map((r, i) => (
-          <tr key={i}><td>{r.label}</td><td className="num">{money(r.amount)}</td><td className="num">{pct(num(r.amount) / (base || total || 1), 0)}</td></tr>
+          <tr key={i}><td>{r.label}</td><td className="num"><Src r={`${name}.${i}.amount`}>{money(r.amount)}</Src></td><td className="num"><Src c={`rowShare:${name}:${i}`}>{pct(num(r.amount) / (base || total || 1), 0)}</Src></td></tr>
         ))}
       </tbody>
       <tfoot>
-        <tr><td>{totalLabel}</td><td className="num">{money(total)}</td><td className="num">100%</td></tr>
+        <tr><td>{totalLabel}</td><td className="num"><Src c={`tableTotal:${name}`}>{money(total)}</Src></td><td className="num">100%</td></tr>
       </tfoot>
     </table>
   );
@@ -58,7 +62,7 @@ function MemoDoc({ deal }) {
       <header className="memo-head">
         <p className="eyebrow">{fund} · Investment Memorandum · Draft</p>
         <h1>{firm}</h1>
-        <p className="subtitle">{money(a.loan)} enterprise loan · {project}</p>
+        <p className="subtitle"><Src r="loanAmount">{money(a.loan)}</Src> enterprise loan · {project}</p>
         <dl className="meta">
           <div><dt>To</dt><dd>{v(deal.committee, 'Investment committee')}</dd></div>
           <div><dt>From</dt><dd>{v(deal.preparedBy, 'Underwriter')}</dd></div>
@@ -71,37 +75,37 @@ function MemoDoc({ deal }) {
         <h2>1. Introduction</h2>
         <p>
           This memorandum presents {firm}{has(deal.hqCity) ? `, based in ${deal.hqCity},` : ''} to the {fund} investment committee for approval of
-          a {money(a.loan)} loan. {firm} is led by {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle}` : ''}, who brings{' '}
-          {has(deal.yearsExperience) ? `${num(deal.yearsExperience)} years` : <Missing what="Years" />} of real estate development and construction experience
-          {has(deal.projectsCompleted) ? ` and ${num(deal.projectsCompleted)} completed projects` : ''}.
+          a <Src r="loanAmount">{money(a.loan)}</Src> loan. {firm} is led by {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle}` : ''}, who brings{' '}
+          {has(deal.yearsExperience) ? <Src r="yearsExperience">{num(deal.yearsExperience)} years</Src> : <Missing what="Years" />} of real estate development and construction experience
+          {has(deal.projectsCompleted) ? <> and <Src r="projectsCompleted">{num(deal.projectsCompleted)} completed projects</Src></> : ''}.
         </p>
         <p>
           Based on the analysis below, the underwriting team recommends that the committee <strong>{recommendation}</strong>.
-          The review produced {reds.length} red and {yellows.length} yellow item{yellows.length === 1 ? '' : 's'}, listed in Section 11.
+          The review produced <Src c="newsCount">{reds.length} red and {yellows.length} yellow item{yellows.length === 1 ? '' : 's'}</Src>, listed in Section 11.
         </p>
       </section>
 
       <section>
         <h2>2. Request</h2>
         <p>
-          {firm} requests a <strong>{money(a.loan)}</strong> {termYears} loan from {fund} at <strong>{has(deal.interestRate) ? `${num(deal.interestRate)}%` : <Missing what="Rate" />}</strong> interest
-          {has(deal.originationFee) ? ` with a ${num(deal.originationFee)}% origination fee (${money(a.fee)})` : ''}. Repayment structure: {deal.repaymentStructure?.toLowerCase() || <Missing what="Structure" />}.
+          {firm} requests a <strong><Src r="loanAmount">{money(a.loan)}</Src></strong> <Src r="termMonths">{termYears}</Src> loan from {fund} at <strong>{has(deal.interestRate) ? <Src r="interestRate">{num(deal.interestRate)}%</Src> : <Missing what="Rate" />}</strong> interest
+          {has(deal.originationFee) ? <> with a <Src r="originationFee">{num(deal.originationFee)}%</Src> origination fee (<Src c="fee">{money(a.fee)}</Src>)</> : ''}. Repayment structure: {deal.repaymentStructure?.toLowerCase() || <Missing what="Structure" />}.
         </p>
         <p><strong>Reason for the loan.</strong> {v(deal.loanPurpose, 'Loan purpose')}</p>
-        <p><strong>Project location.</strong> {project}, {v(deal.projectAddress, 'Address')}{has(deal.assetType) ? `, ${deal.assetType.toLowerCase()}` : ''}{num(deal.squareFeet) ? ` of about ${num(deal.squareFeet).toLocaleString()} sq ft` : ''}.</p>
+        <p><strong>Project location.</strong> {project}, {v(deal.projectAddress, 'Address')}{has(deal.assetType) ? `, ${deal.assetType.toLowerCase()}` : ''}{num(deal.squareFeet) ? <> of about <Src r="squareFeet">{num(deal.squareFeet).toLocaleString()} sq ft</Src></> : ''}.</p>
 
         <h3>Use of {fund} loan proceeds</h3>
-        <AmountTable rows={deal.urgeUses} total={a.urgeUsesTotal} totalLabel={`Total ${fund} loan`} />
+        <AmountTable name="urgeUses" rows={deal.urgeUses} total={a.urgeUsesTotal} totalLabel={`Total ${fund} loan`} />
 
         <h3>Overall project sources and uses</h3>
         <div className="two-col">
           <div>
             <h4>Sources</h4>
-            <AmountTable rows={deal.projectSources} total={a.srcTotal} totalLabel="Total sources" />
+            <AmountTable name="projectSources" rows={deal.projectSources} total={a.srcTotal} totalLabel="Total sources" />
           </div>
           <div>
             <h4>Uses</h4>
-            <AmountTable rows={deal.projectUses} total={a.useTotal} totalLabel="Total uses" />
+            <AmountTable name="projectUses" rows={deal.projectUses} total={a.useTotal} totalLabel="Total uses" />
           </div>
         </div>
         {deal.projectSources?.length > 0 && (
@@ -109,8 +113,8 @@ function MemoDoc({ deal }) {
         )}
         {a.loanShareOfProject !== null && (
           <Note>
-            The {fund} loan equals {pct(a.loanShareOfProject)} of total project cost ({money(a.projectCost)}).
-            {Math.abs(a.srcTotal - a.useTotal) > 1 && a.srcTotal && a.useTotal ? ` Sources and uses differ by ${money(Math.abs(a.srcTotal - a.useTotal))}; see Section 11.` : ' Project sources and uses are balanced.'}
+            The {fund} loan equals <Src c="loanShareOfProject">{pct(a.loanShareOfProject)}</Src> of total project cost (<Src c="projectCost">{money(a.projectCost)}</Src>).
+            {Math.abs(a.srcTotal - a.useTotal) > 1 && a.srcTotal && a.useTotal ? <> Sources and uses differ by <Src c="srcUseGap">{money(Math.abs(a.srcTotal - a.useTotal))}</Src>; see Section 11.</> : ' Project sources and uses are balanced.'}
           </Note>
         )}
       </section>
@@ -122,7 +126,7 @@ function MemoDoc({ deal }) {
           <tbody>
             <tr>
               <td>Experience</td><td><Badge level={a.merits[0].level} /></td>
-              <td>{principal} has {has(deal.yearsExperience) ? `${num(deal.yearsExperience)} years` : 'an unstated amount'} of experience{has(deal.projectsCompleted) ? ` and has completed ${num(deal.projectsCompleted)} projects` : ''}. {a.merits[0].level === 'green' ? 'The track record supports a project of this size.' : 'The committee should weigh the track record against the size of this project.'}</td>
+              <td>{principal} has {has(deal.yearsExperience) ? <Src r="yearsExperience">{num(deal.yearsExperience)} years</Src> : 'an unstated amount'} of experience{has(deal.projectsCompleted) ? <> and has completed <Src r="projectsCompleted">{num(deal.projectsCompleted)} projects</Src></> : ''}. {a.merits[0].level === 'green' ? 'The track record supports a project of this size.' : 'The committee should weigh the track record against the size of this project.'}</td>
             </tr>
             <tr>
               <td>Mission alignment</td><td><Badge level={a.missionLevel} /></td>
@@ -131,9 +135,9 @@ function MemoDoc({ deal }) {
             <tr>
               <td>Financial strength</td><td><Badge level={a.merits[2].level} /></td>
               <td>
-                {a.debtToEquityAfter !== null ? `Debt-to-equity of ${a.debtToEquityAfter.toFixed(2)}x including this loan. ` : ''}
-                {a.cashMonthsInterest !== null ? `Cash covers about ${a.cashMonthsInterest.toFixed(0)} months of interest. ` : ''}
-                {a.repaymentCoverage !== null ? `Primary repayment source covers ${a.repaymentCoverage.toFixed(2)}x of principal plus interest.` : ''}
+                {a.debtToEquityAfter !== null ? <>Debt-to-equity of <Src c="debtToEquityAfter">{a.debtToEquityAfter.toFixed(2)}x</Src> including this loan. </> : ''}
+                {a.cashMonthsInterest !== null ? <>Cash covers about <Src c="cashMonthsInterest">{a.cashMonthsInterest.toFixed(0)} months</Src> of interest. </> : ''}
+                {a.repaymentCoverage !== null ? <>Primary repayment source covers <Src c="repaymentCoverage">{a.repaymentCoverage.toFixed(2)}x</Src> of principal plus interest.</> : ''}
               </td>
             </tr>
             <tr className="overall">
@@ -149,14 +153,14 @@ function MemoDoc({ deal }) {
 
         <h3>Project location</h3>
         <p>
-          {project} is located at {v(deal.projectAddress, 'Address')}. {has(deal.walkScore) ? `The site has a Walk Score of ${num(deal.walkScore)} (walkscore.com). ` : ''}
+          {project} is located at {v(deal.projectAddress, 'Address')}. {has(deal.walkScore) ? <>The site has a Walk Score of <Src r="walkScore">{num(deal.walkScore)}</Src> (walkscore.com). </> : ''}
           {v(deal.neighborhood, 'Neighborhood description')}
         </p>
 
         <h3>Enterprise collateral</h3>
         <p>
-          {firm} reports total assets of {money(deal.totalAssets)}, liabilities of {money(a.liabilities)} and equity of {money(a.equity)}.
-          {a.debtToEquity !== null ? ` Debt-to-equity is ${a.debtToEquity.toFixed(2)}x today and would be ${a.debtToEquityAfter.toFixed(2)}x after this loan.` : ''}
+          {firm} reports total assets of <Src r="totalAssets">{money(deal.totalAssets)}</Src>, liabilities of <Src r="totalLiabilities">{money(a.liabilities)}</Src> and equity of <Src r="totalEquity">{money(a.equity)}</Src>.
+          {a.debtToEquity !== null ? <> Debt-to-equity is <Src c="debtToEquity">{a.debtToEquity.toFixed(2)}x</Src> today and would be <Src c="debtToEquityAfter">{a.debtToEquityAfter.toFixed(2)}x</Src> after this loan.</> : ''}
           {has(deal.collateral) ? ` Collateral: ${deal.collateral}` : ''}
         </p>
         {a.equity > 0 && (
@@ -175,10 +179,10 @@ function MemoDoc({ deal }) {
       <section>
         <h2>4. Investment overview</h2>
         <p>
-          {fund} would lend {money(a.loan)} to {firm} to support {project}{a.projectCost ? `, a ${money(a.projectCost)} ${has(deal.assetType) ? deal.assetType.toLowerCase() : 'commercial'} project` : ''}.
-          Over the {termYears || ''} term the loan is expected to earn {money(a.totalInterest)} in interest{a.fee ? ` plus ${money(a.fee)} in fees` : ''}.
+          {fund} would lend <Src r="loanAmount">{money(a.loan)}</Src> to {firm} to support {project}{a.projectCost ? <>, a <Src c="projectCost">{money(a.projectCost)}</Src> {has(deal.assetType) ? deal.assetType.toLowerCase() : 'commercial'} project</> : ''}.
+          Over the {termYears || ''} term the loan is expected to earn <Src c="totalInterest">{money(a.totalInterest)}</Src> in interest{a.fee ? <> plus <Src c="fee">{money(a.fee)}</Src> in fees</> : ''}.
           The primary repayment source is {has(deal.repaymentOptions?.[0]?.option) ? deal.repaymentOptions[0].option.toLowerCase() : <Missing what="Primary repayment source" />}
-          {a.exitMonth ? `, expected around month ${a.exitMonth}` : ''}.
+          {a.exitMonth ? <>, expected around <Src r="exitMonth">month {a.exitMonth}</Src></> : ''}.
           Beyond the single project, the loan is intended to strengthen {firm} as a company: {has(deal.growthPlan) ? deal.growthPlan.charAt(0).toLowerCase() + deal.growthPlan.slice(1) : <Missing what="Growth plan" />}
         </p>
       </section>
@@ -222,11 +226,12 @@ function MemoDoc({ deal }) {
               <tbody>
                 {a.fin.map((r, i) => {
                   const g = a.growth.find((x) => x.year === r.year);
+                  const fi = deal.financials.indexOf(r);
                   return (
                     <tr key={i} className={String(r.type).startsWith('P') ? 'projected' : ''}>
-                      <td>{r.year}</td><td>{r.type}</td><td className="num">{money(r.revenue)}</td><td className="num">{money(r.netIncome)}</td>
-                      <td className="num opt">{num(r.revenue) ? pct(num(r.netIncome) / num(r.revenue)) : '–'}</td>
-                      <td className="num opt">{g ? pct(g.g, 0) : '–'}</td>
+                      <td>{r.year}</td><td>{r.type}</td><td className="num"><Src r={`financials.${fi}.revenue`}>{money(r.revenue)}</Src></td><td className="num"><Src r={`financials.${fi}.netIncome`}>{money(r.netIncome)}</Src></td>
+                      <td className="num opt">{num(r.revenue) ? <Src c={`margin:${r.year}`}>{pct(num(r.netIncome) / num(r.revenue))}</Src> : '–'}</td>
+                      <td className="num opt">{g ? <Src c={`growth:${r.year}`}>{pct(g.g, 0)}</Src> : '–'}</td>
                     </tr>
                   );
                 })}
@@ -235,11 +240,11 @@ function MemoDoc({ deal }) {
             <Columns title="Revenue by year (lighter bars are projections)" points={a.fin.map((r) => ({ label: r.year, value: num(r.revenue), muted: String(r.type).startsWith('P') }))} />
             <h3>Key observations</h3>
             <ul>
-              {lastActual && <li>Most recent actual year ({lastActual.year}): revenue of {money(lastActual.revenue)} and net income of {money(lastActual.netIncome)} ({num(lastActual.revenue) ? pct(num(lastActual.netIncome) / num(lastActual.revenue)) : '–'} margin).</li>}
-              {a.avgActualGrowth !== null && <li>Historical revenue growth has averaged {pct(a.avgActualGrowth, 0)} per year.</li>}
-              {firstProj && lastProj && lastActual && <li>The borrower projects revenue rising to {money(lastProj.revenue)} by {lastProj.year}, {pct(num(lastProj.revenue) / num(lastActual.revenue) - 1, 0)} above {lastActual.year}.</li>}
-              {has(deal.ownerSharePct) && <li>{principal} owns {num(deal.ownerSharePct)}% of {firm}{lastProj ? `, implying a ${money((num(lastProj.netIncome) * num(deal.ownerSharePct)) / 100)} share of projected ${lastProj.year} net income` : ''}.</li>}
-              {a.cash > 0 && <li>Cash on hand of {money(a.cash)}.</li>}
+              {lastActual && <li>Most recent actual year ({lastActual.year}): revenue of <Src r={`financials.${deal.financials.indexOf(lastActual)}.revenue`}>{money(lastActual.revenue)}</Src> and net income of <Src r={`financials.${deal.financials.indexOf(lastActual)}.netIncome`}>{money(lastActual.netIncome)}</Src> ({num(lastActual.revenue) ? <Src c={`margin:${lastActual.year}`}>{pct(num(lastActual.netIncome) / num(lastActual.revenue))}</Src> : '–'} margin).</li>}
+              {a.avgActualGrowth !== null && <li>Historical revenue growth has averaged <Src c="avgActualGrowth">{pct(a.avgActualGrowth, 0)}</Src> per year.</li>}
+              {firstProj && lastProj && lastActual && <li>The borrower projects revenue rising to <Src r={`financials.${deal.financials.indexOf(lastProj)}.revenue`}>{money(lastProj.revenue)}</Src> by {lastProj.year}, <Src c="projectedRise">{pct(num(lastProj.revenue) / num(lastActual.revenue) - 1, 0)}</Src> above {lastActual.year}.</li>}
+              {has(deal.ownerSharePct) && <li>{principal} owns <Src r="ownerSharePct">{num(deal.ownerSharePct)}%</Src> of {firm}{lastProj ? <>, implying a <Src c="ownerShareIncome">{money((num(lastProj.netIncome) * num(deal.ownerSharePct)) / 100)}</Src> share of projected {lastProj.year} net income</> : ''}.</li>}
+              {a.cash > 0 && <li>Cash on hand of <Src r="cash">{money(a.cash)}</Src>.</li>}
             </ul>
           </>
         ) : <p><Missing what="Firm financials" /></p>}
@@ -248,9 +253,9 @@ function MemoDoc({ deal }) {
       <section>
         <h2>9. Loan sizing &amp; repayment</h2>
         <p>
-          At {has(deal.interestRate) ? `${num(deal.interestRate)}%` : 'the stated rate'}, annual interest on {money(a.loan)} is {money(a.annualInterest)} ({money(a.annualInterest / 12)} per month).
-          Total owed to {fund} over the term is {money(a.totalOwed)} (principal plus interest).
-          {a.repaymentCoverage !== null ? ` The borrower’s primary repayment source is expected to produce ${money(a.exitProceeds)}, or ${a.repaymentCoverage.toFixed(2)}x coverage.` : ''}
+          At {has(deal.interestRate) ? <Src r="interestRate">{num(deal.interestRate)}%</Src> : 'the stated rate'}, annual interest on <Src r="loanAmount">{money(a.loan)}</Src> is <Src c="annualInterest">{money(a.annualInterest)}</Src> (<Src c="monthlyInterest">{money(a.annualInterest / 12)}</Src> per month).
+          Total owed to {fund} over the term is <Src c="totalOwed">{money(a.totalOwed)}</Src> (principal plus interest).
+          {a.repaymentCoverage !== null ? <> The borrower’s primary repayment source is expected to produce <Src r="exitProceeds">{money(a.exitProceeds)}</Src>, or <Src c="repaymentCoverage">{a.repaymentCoverage.toFixed(2)}x</Src> coverage.</> : ''}
         </p>
         <h3>Repayment options, in priority order</h3>
         {deal.repaymentOptions?.length ? (
@@ -285,7 +290,7 @@ function MemoDoc({ deal }) {
                     <li key={i}>
                       <Badge level={['red', 'yellow', 'green'].includes(n.level) ? n.level : 'yellow'} />{' '}
                       <strong>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{n.headline}</a> : n.headline}</strong>
-                      {(n.source || n.date) && <span className="small"> ({[n.source, n.date].filter(Boolean).join(', ')})</span>}
+                      {(n.source || n.date) && <span className="small"> (<Src r={`news.${deal.news.indexOf(n)}`}>{[n.source, n.date].filter(Boolean).join(', ')}</Src>)</span>}
                       {n.summary && <p>{n.summary}{n.relevance ? ` ${n.relevance}` : ''}</p>}
                     </li>
                   );
@@ -319,10 +324,10 @@ function MemoDoc({ deal }) {
           <tbody>
             <tr><th>Borrower</th><td>{firm}</td></tr>
             <tr><th>Lender</th><td>{fund}</td></tr>
-            <tr><th>Loan amount</th><td>{money(a.loan)}</td></tr>
-            <tr><th>Interest rate</th><td>{has(deal.interestRate) ? `${num(deal.interestRate)}% per year` : <Missing what="Rate" />}</td></tr>
-            <tr><th>Term</th><td>{has(deal.termMonths) ? `${a.term} months` : <Missing what="Term" />}</td></tr>
-            <tr><th>Origination fee</th><td>{has(deal.originationFee) ? `${num(deal.originationFee)}% (${money(a.fee)})` : 'None'}</td></tr>
+            <tr><th>Loan amount</th><td><Src r="loanAmount">{money(a.loan)}</Src></td></tr>
+            <tr><th>Interest rate</th><td>{has(deal.interestRate) ? <Src r="interestRate">{num(deal.interestRate)}% per year</Src> : <Missing what="Rate" />}</td></tr>
+            <tr><th>Term</th><td>{has(deal.termMonths) ? <Src r="termMonths">{a.term} months</Src> : <Missing what="Term" />}</td></tr>
+            <tr><th>Origination fee</th><td>{has(deal.originationFee) ? <><Src r="originationFee">{num(deal.originationFee)}%</Src> (<Src c="fee">{money(a.fee)}</Src>)</> : 'None'}</td></tr>
             <tr><th>Repayment</th><td>{deal.repaymentStructure}</td></tr>
             <tr><th>Use of proceeds</th><td>{deal.urgeUses?.map((u) => u.label).join('; ') || <Missing what="Uses" />}</td></tr>
             <tr><th>Collateral</th><td>{v(deal.collateral, 'Collateral')}</td></tr>
