@@ -190,3 +190,4 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .verify-sync .btn { margin-top: 8px; display: block; }
 .verify .verify-sync ol { list-style: decimal; display: block; }
 .verify .verify-sync li { display: list-item; }
+.chaotic-note { margin: 0 0 10px; }

@@ -89,7 +89,7 @@ export default function App() {
     const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : Math.floor(Math.random() * 1e6) + 1;
     setSeedTyped(false);
     setSpin((n) => n + 1);
-    const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
+    const r = randomDeal(seed, { profile: rand.profile, mistakes: rand.profile === 'chaotic' ? 0 : Number(rand.mistakes) });
     setDeal(r.deal);
     setGenerated(null);
     setRand({ ...rand, seed: String(seed) });
@@ -191,7 +191,7 @@ export default function App() {
                 </select>
               </label>
               <label><span>Planted mistakes</span>
-                <select value={rand.mistakes} onChange={(e) => setRand({ ...rand, mistakes: e.target.value })} aria-label="Number of planted mistakes">
+                <select value={rand.profile === 'chaotic' ? '0' : rand.mistakes} disabled={rand.profile === 'chaotic'} onChange={(e) => setRand({ ...rand, mistakes: e.target.value })} aria-label="Number of planted mistakes">
                   <option value="0">None</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => n < MAX_MISTAKES).map((n) => <option key={n} value={n}>{n}</option>)}
                   <option value={MAX_MISTAKES}>Maximum ({MAX_MISTAKES})</option>
@@ -204,6 +204,7 @@ export default function App() {
               <button className="btn ghost" disabled={!rand.seed} onClick={() => randomize(true)}>Repeat this seed</button>
             </div>
           </div>
+          {rand.profile === 'chaotic' && <p className="hint chaotic-note">Chaotic deals already contain random blanks and extreme values, so planted mistakes are switched off. Choose Any, Strong, Medium or Weak to plant mistakes.</p>}
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>
 
