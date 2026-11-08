@@ -1,5 +1,21 @@
 import { money } from './sampleDeal.js'
 
+
+// What each section should contain; used to instruct the AI.
+export const sectionSpecs = [
+  { id: 'request', title: '1. Request summary', guidance: 'One paragraph: loan amount, borrower, purpose, location, price, terms, success fee.' },
+  { id: 'sources', title: '2. Sources and uses', guidance: 'How the borrower will spend the money; where the EBIARA loan sits in the project finance.' },
+  { id: 'criteria', title: '3. Investment criteria and overall assessment', guidance: 'Experience, mission alignment, financial strength (excess assets, excess cash flow). Give overall rating; list mitigants for any yellow.' },
+  { id: 'considerations', title: '4. Considerations', guidance: 'Few sentences each: service-driven impact, minority contract support, management experience, principal financial strength, development team, risk management, Walk/Transit/Bike score (only if supplied).' },
+  { id: 'mission', title: '5. Mission alignment', guidance: 'BIPOC-owned firm, potential scale/acceleration, economic impact, neighborhood impact area, overall rating.' },
+  { id: 'collateral', title: '6. Collateral and capital structure', guidance: 'Debt-to-equity and the percentage the principal currently owns; collateral offered.' },
+  { id: 'overview', title: '7. Investment overview and organizational structure', guidance: 'How the deal is broken down and where EBIARA money sits in the borrower\u2019s structure.' },
+  { id: 'team', title: '8. Team', guidance: 'Names, companies and short bios of the team.' },
+  { id: 'financials', title: '9. Firm financials', guidance: '2-3 years of history then projections. Note outliers, e.g. sudden cash-flow jumps. Show what the principal actually receives from his share.' },
+  { id: 'sizing', title: '10. Loan sizing and repayment', guidance: 'MOST IMPORTANT. Give 3-5 independent ways EBIARA gets repaid (ownership, refinance proceeds, cash flow, real estate portfolio). Always cover worst-case scenarios. Include a refinance analysis: proceeds minus debt.' },
+  { id: 'recommendation', title: '11. Recommendation and term sheet', guidance: 'Recommendation, then term sheet: commitment, loan type, purpose, collateral, term/repayment, commitment fee, interest, interest holdback, disbursement, success fee.' },
+]
+
 const dash = (v) => (v && String(v).trim() ? v : '[not provided yet]')
 
 // Builds the demo draft from the deal form. Phase 2 replaces `body` with AI-written text.

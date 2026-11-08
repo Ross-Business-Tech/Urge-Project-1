@@ -31,3 +31,35 @@ button.secondary { margin-bottom: 12px; }
 .badge.green { background: #1f8a4c; }
 .badge.yellow { background: #8a6a00; }
 .badge.red { background: #b3261e; }
+button.primary.top { margin: 0 0 12px; }
+button:disabled { opacity: 0.6; cursor: progress; }
+.notice.warn { border-color: #b3261e; background: rgba(179, 38, 30, 0.08); }
+.research { display: block; margin: 16px 0; }
+.research span { display: block; font-size: 0.85rem; margin-bottom: 4px; }
+.research textarea, .edit, .regen input {
+  width: 100%; box-sizing: border-box; font: inherit; padding: 10px;
+  border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text-h);
+}
+.upload li span { flex: 1; word-break: break-word; }
+.checks { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 0.9rem; }
+.checks summary { cursor: pointer; font-weight: 600; color: var(--text-h); }
+.actions { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+button.link { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; padding: 8px 0; min-height: 44px; }
+.actions select { font: inherit; padding: 6px; border-radius: 6px; }
+.regen { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.charts { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
+.chart { margin: 10px 0; flex: 1 1 200px; }
+.chart figcaption { font-weight: 600; color: var(--text-h); font-size: 0.9rem; }
+.chart svg { width: 140px; height: 140px; display: block; }
+.chart ul { list-style: none; padding: 0; margin: 6px 0 0; font-size: 0.8rem; }
+.chart li i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.bar-row { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; align-items: center; font-size: 0.8rem; margin: 4px 0; }
+.bar { background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; }
+.bar div { height: 100%; }
+.export { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+.pick { font-size: 1.1rem; margin: 4px 0 2px; color: var(--text-h); }
+.examples { display: grid; gap: 8px; margin: 10px 0 16px; }
+.example { text-align: left; font: inherit; cursor: pointer; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); padding: 12px; display: grid; gap: 2px; min-height: 44px; }
+.example b { color: var(--text-h); }
+.example span { font-size: 0.85rem; }
+.example.active { border-color: var(--accent); background: var(--accent-bg); }

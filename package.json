@@ -12,8 +12,11 @@
     "publish:preview": "node scripts/herenow-publish.mjs preview"
   },
   "dependencies": {
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.5.438",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "read-excel-file": "^9.3.14"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
