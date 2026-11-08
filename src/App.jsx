@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import DealForm from './components/DealForm.jsx';
 import Memo from './components/Memo.jsx';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
+import { sampleLoans } from './lib/sampleLoans.js';
+import { randomDeal } from './lib/randomDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
 import { verifyAll } from './lib/verify/index.js';
@@ -36,6 +38,7 @@ export default function App() {
   const [generated, setGenerated] = useState(null); // { deal, id }
   const [msg, setMsg] = useState(null);
   const [report, setReport] = useState(null);
+  const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
   const fileRef = useRef(null);
   const memoRef = useRef(null);
 
@@ -66,6 +69,23 @@ export default function App() {
     setGenerated({ deal: structuredClone(deal), id: Date.now() });
     setTab('memo');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const loadSample = (id) => {
+    const ex = sampleLoans.find((x) => x.id === id);
+    if (!ex) return;
+    setDeal(structuredClone(ex.deal));
+    setGenerated(null); // the old memo no longer matches this deal
+    flash(`Loaded sample: ${ex.name}.`);
+  };
+
+  const randomize = () => {
+    const seed = rand.seed.trim() ? Number(rand.seed) || 1 : Math.floor(Math.random() * 1e6) + 1;
+    const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
+    setDeal(r.deal);
+    setGenerated(null);
+    setRand({ ...rand, seed: String(seed) });
+    flash(`Random deal #${seed} (${r.profile}${r.planted.length ? `, ${r.planted.length} planted mistake${r.planted.length > 1 ? 's' : ''}: ${r.planted.map((p) => p.type).join(', ')}` : ''}).`);
   };
 
   const runChecks = () => {
@@ -132,12 +152,40 @@ export default function App() {
           <p>Upload the deal spreadsheet or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
           <div className="actions">
             <button className="btn" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
-            <button className="btn ghost" onClick={() => { setDeal(structuredClone(sampleDeal)); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
             <button className="btn ghost" onClick={() => download(`deal-data-${slug(deal.firmName || 'template')}.csv`, dealToCsv(deal.firmName ? deal : sampleDeal), 'text/csv')}>
               {deal.firmName ? 'Save data as spreadsheet' : 'Download blank template'}
             </button>
             <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) setDeal(structuredClone(emptyDeal)); }}>Clear</button>
             <input ref={fileRef} type="file" accept=".csv,.json,text/csv,application/json" hidden onChange={onUpload} />
+          </div>
+          <div className="samples">
+            <label>
+              <span>Sample loans (all made up)</span>
+              <select value="" onChange={(e) => loadSample(e.target.value)} aria-label="Load a sample loan">
+                <option value="">Choose a sample loan…</option>
+                {sampleLoans.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+            </label>
+            <div className="random">
+              <label><span>Randomizer</span>
+                <select value={rand.profile} onChange={(e) => setRand({ ...rand, profile: e.target.value })} aria-label="Random deal type">
+                  <option value="any">Any type</option>
+                  <option value="strong">Strong</option>
+                  <option value="mid">Medium</option>
+                  <option value="weak">Weak</option>
+                  <option value="chaotic">Chaotic</option>
+                </select>
+              </label>
+              <label><span>Planted mistakes</span>
+                <select value={rand.mistakes} onChange={(e) => setRand({ ...rand, mistakes: e.target.value })} aria-label="Number of planted mistakes">
+                  <option value="0">None</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </label>
+              <label><span>Seed (to repeat a deal)</span>
+                <input inputMode="numeric" placeholder="random" value={rand.seed} onChange={(e) => setRand({ ...rand, seed: e.target.value.replace(/\D/g, '') })} aria-label="Random seed" />
+              </label>
+              <button className="btn" onClick={randomize}>Randomize the whole deal</button>
+            </div>
           </div>
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>

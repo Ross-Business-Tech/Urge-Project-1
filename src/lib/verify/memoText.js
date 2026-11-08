@@ -27,6 +27,8 @@ function collect(value, into) {
     if (Number.isFinite(Number(value.replace(/[$,%\s]/g, '')))) into.add(num(value));
     // numbers written inside sentences, e.g. "remaining 80% of the project"
     for (const m of value.match(/\d[\d,]*\.?\d*/g) || []) into.add(num(m));
+    // figures with units inside sentences, e.g. "projects under $10M"
+    for (const tok of value.match(TOKEN) || []) { const p = parse(tok); if (p) into.add(p.v); }
   }
   else if (Array.isArray(value)) value.forEach((x) => collect(x, into));
   else if (value && typeof value === 'object') Object.values(value).forEach((x) => collect(x, into));
@@ -42,8 +44,10 @@ export function allowedNumbers(deal) {
     a.liabilities + a.loan, a.equity - a.loan, a.totalOwed - a.loan];
   // Year-by-year margins and growth between any two years (the memo says e.g. "105% above 2025")
   const fin = (deal.financials || []).filter((r) => num(r.revenue) > 0);
+  const ownerPct = num(deal.ownerSharePct);
   for (let i = 0; i < fin.length; i++) {
     more.push(num(fin[i].netIncome) / num(fin[i].revenue));
+    if (ownerPct) more.push((num(fin[i].netIncome) * ownerPct) / 100, (num(fin[i].revenue) * ownerPct) / 100); // owner's share
     for (let j = i + 1; j < fin.length; j++) {
       more.push(num(fin[j].revenue) / num(fin[i].revenue) - 1, num(fin[j].netIncome) / (num(fin[i].netIncome) || 1) - 1);
     }

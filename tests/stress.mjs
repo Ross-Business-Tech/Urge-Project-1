@@ -5,6 +5,7 @@ import { analyze } from '../src/lib/analysis.js';
 import { verifyAll } from '../src/lib/verify/index.js';
 import { rateIndependent, checkRatings, RANK } from '../src/lib/verify/ratings.js';
 import { checkMemoText } from '../src/lib/verify/memoText.js';
+import { randomDeal, MISTAKES } from '../src/lib/randomDeal.js';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
@@ -88,37 +89,107 @@ for (const [name, patch] of Object.entries(worse)) {
   });
 }
 
-// ---------------------------------------------------------------- 5. Differential grid
-section('5. 300 random deals: app ratings vs the written rules');
-let seed = 12345;
-const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-const pick = (lo, hi) => Math.round(lo + rnd() * (hi - lo));
-const grid = Array.from({ length: 300 }, () => mut({
-  yearsExperience: String(pick(0, 20)), projectsCompleted: String(pick(0, 12)),
-  loanAmount: String(pick(100, 3000) * 1000), interestRate: String(pick(4, 14)), termMonths: String(pick(6, 60)),
-  totalLiabilities: String(pick(0, 6000) * 1000), totalEquity: String(pick(100, 4000) * 1000), cash: String(pick(0, 1500) * 1000),
-  exitProceeds: String(pick(200, 5000) * 1000), exitMonth: String(pick(3, 70)), walkScore: String(pick(0, 100)),
-  bipocOwned: rnd() > 0.5 ? 'Yes' : 'No', impactArea: rnd() > 0.5 ? 'Yes' : 'No', jobsCreated: String(pick(0, 60)), growthPlan: rnd() > 0.5 ? 'Plan' : '',
-}));
-test('every rating matches the rubric (no drift)', () => {
-  const drift = grid.filter((d) => checkRatings(d).some((i) => i.level === 'fail' && i.area === 'Ratings'));
-  return drift.length === 0 || `${drift.length}/300 deals disagree`;
+// ---------------------------------------------------------------- 5. Random deals (the randomizer)
+const arg = (name, dflt) => { const i = process.argv.indexOf('--' + name); return i > -1 ? Number(process.argv[i + 1]) : dflt; };
+const COUNT = arg('count', 500);
+const SEED = arg('seed', 1);
+section(`5. ${COUNT} random deals (seed base ${SEED}; use --count N --seed S)`);
+const gen = (i, opts) => randomDeal(SEED * 1000003 + i, opts);
+const clean = Array.from({ length: COUNT }, (_, i) => gen(i, { profile: 'any' }));
+const seeds = (list) => list.slice(0, 4).map((r) => '#' + r.seed).join(', ');
+
+test('same seed always gives the same deal', () => JSON.stringify(randomDeal(77)) === JSON.stringify(randomDeal(77)) && JSON.stringify(randomDeal(77)) !== JSON.stringify(randomDeal(78)));
+test('clean random deals: zero failed checks', () => {
+  const bad = clean.filter((r) => verifyAll(r.deal).counts.fail > 0);
+  return bad.length === 0 || `${bad.length} deals failed, e.g. seeds ${seeds(bad)}: ${verifyAll(bad[0].deal).items.find((i) => i.level === 'fail').title}`;
 });
-test('overall never better than worst independent merit', () => {
-  const bad = grid.filter((d) => { const m = rateIndependent(d); const fin = [m.leverage, m.cash].filter(Boolean); const w = [m.experience, m.mission, ...fin].filter(Boolean).reduce((x, l) => Math.max(x, RANK[l]), 0); return RANK[analyze(d).overall] < w; });
-  return bad.length === 0 || `${bad.length}/300 deals`;
+test('app ratings match the written rules (no drift)', () => {
+  const bad = clean.filter((r) => checkRatings(r.deal).some((i) => i.level === 'fail'));
+  return bad.length === 0 || `${bad.length} deals disagree, e.g. seeds ${seeds(bad)}`;
 });
-test('real memos for all 300 deals pass the memo-text check (no false alarms)', () => {
+test('overall never better than the worst merit', () => {
+  const bad = clean.filter((r) => { const m = rateIndependent(r.deal); const w = [m.experience, m.mission, m.leverage, m.cash].filter(Boolean).reduce((x, l) => Math.max(x, RANK[l]), 0); return RANK[analyze(r.deal).overall] < w; });
+  return bad.length === 0 || `${bad.length} deals, e.g. seeds ${seeds(bad)}`;
+});
+test('real memo text passes the memo-text check (no false alarms)', () => {
   const bad = [];
-  for (const d of grid) { const f = checkMemoText(memoText(d), d).filter((i) => i.level === 'fail'); if (f.length) bad.push(f[0].title); }
-  return bad.length === 0 || `${bad.length}/300 false alarms, e.g. ${[...new Set(bad)].slice(0, 4).join(' | ')}`;
+  for (const r of clean) { const f = checkMemoText(memoText(r.deal), r.deal).filter((i) => i.level === 'fail'); if (f.length) bad.push({ seed: r.seed, t: f[0].title }); }
+  return bad.length === 0 || `${bad.length} false alarms, e.g. ${bad.slice(0, 3).map((b) => `#${b.seed} ${b.t}`).join(' | ')}`;
 });
-test('checker detects deals where overall hides a red item', () => {
-  const hidden = grid.filter((d) => { const a = analyze(d); return a.flags.some((f) => f.level === 'red') && a.overall !== 'red'; });
-  const caught = hidden.filter((d) => checkRatings(d).some((i) => i.level === 'warn'));
-  console.log(`      (${hidden.length} of 300 random deals have a red item with a non-red overall; ${caught.length} caught as warnings)`);
-  return caught.length > 0 || 'none caught';
+for (const [prof, want] of [['strong', 'green'], ['mid', 'yellow'], ['weak', 'red']]) {
+  test(`${prof} deals rate ${want.toUpperCase()}`, () => {
+    const n = Math.max(30, Math.round(COUNT / 5));
+    const got = Array.from({ length: n }, (_, i) => analyze(gen(i + 9000, { profile: prof }).deal).overall);
+    const pct = got.filter((x) => x === want).length / n;
+    console.log(`      (${Math.round(pct * 100)}% of ${n} ${prof} deals rated ${want})`);
+    return pct >= 0.9 || `only ${Math.round(pct * 100)}% rated ${want}`;
+  });
+}
+test('worsening a random deal never improves a rating', () => {
+  const patches = [
+    (d) => { d.totalEquity = String(Math.round(Number(d.totalEquity) * 0.5)); },
+    (d) => { d.totalLiabilities = String(Number(d.totalLiabilities) * 2 + 500000); },
+    (d) => { d.cash = String(Math.round(Number(d.cash) * 0.2)); },
+    (d) => { d.exitProceeds = String(Math.round(Number(d.exitProceeds) * 0.6)); },
+    (d) => { d.yearsExperience = String(Math.max(0, Number(d.yearsExperience) - 5)); },
+    (d) => { d.interestRate = String(Number(d.interestRate) + 6); },
+    (d) => { d.bipocOwned = 'No'; d.impactArea = 'No'; d.growthPlan = ''; d.jobsCreated = '0'; },
+  ];
+  let bad = 0, first = '';
+  for (const r of clean.slice(0, Math.min(COUNT, 200))) {
+    const a = analyze(r.deal);
+    for (const [k, p] of patches.entries()) {
+      const d = structuredClone(r.deal); p(d); const b = analyze(d);
+      const worseOnly = RANK[b.overall] >= RANK[a.overall] && a.merits.every((m) => RANK[b.merits.find((x) => x.label === m.label).level] >= RANK[m.level]);
+      if (!worseOnly) { bad++; first ||= `seed #${r.seed}, change ${k}`; }
+    }
+  }
+  return bad === 0 || `${bad} cases improved, first: ${first}`;
 });
+{
+  const types = Object.keys(MISTAKES);
+  const stats = Object.fromEntries(types.map((t) => [t, { planted: 0, caught: 0 }]));
+  const missed = [];
+  const n = Math.max(40, Math.round(COUNT / 2));
+  for (let i = 0; i < n; i++) {
+    const r = gen(i + 50000, { profile: 'any', mistakes: 1 + (i % 3) });
+    const found = verifyAll(r.deal).items;
+    for (const p of r.planted) {
+      stats[p.type].planted++;
+      if (found.some((it) => it.level === p.level && p.re.test(it.title))) stats[p.type].caught++;
+      else missed.push(`#${r.seed} ${p.type}`);
+    }
+  }
+  test(`every planted mistake is caught (${n} deals, 1-3 mistakes each)`, () => {
+    for (const t of types) console.log(`      ${t.padEnd(22)} ${stats[t].caught}/${stats[t].planted} caught`);
+    return missed.length === 0 || `${missed.length} missed, e.g. ${missed.slice(0, 4).join(', ')}`;
+  });
+}
+test('hand-edited memo numbers are caught on random deals', () => {
+  let miss = 0;
+  for (const r of clean.slice(0, Math.min(COUNT, 100))) {
+    const edited = memoText(r.deal).replace(new RegExp('\\$' + Number(r.deal.loanAmount).toLocaleString('en-US') + '(?![\\d,])'), '$' + (Number(r.deal.loanAmount) + 12345).toLocaleString('en-US'));
+    if (!checkMemoText(edited, r.deal).some((i) => i.level === 'fail')) miss++;
+  }
+  return miss === 0 || `${miss}/100 edits not caught`;
+});
+test('chaotic deals (blanks, extremes, odd text): no crash, no NaN/undefined in the memo', () => {
+  const bad = [];
+  for (let i = 0; i < Math.max(60, Math.round(COUNT / 4)); i++) {
+    const r = gen(i + 80000, { profile: 'chaotic' });
+    const v = verifyAll(r.deal, memoText(r.deal));
+    const err = v.items.find((it) => it.area === 'Checks');
+    const text = memoText(r.deal);
+    const junk = text.match(/NaN|undefined|\[object|Infinity/);
+    if (err) bad.push(`#${r.seed} checker error: ${err.detail}`);
+    else if (junk) bad.push(`#${r.seed} memo shows "${junk[0]}"`);
+  }
+  return bad.length === 0 || `${bad.length} problems, e.g. ${bad.slice(0, 3).join(' | ')}`;
+});
+{
+  const hidden = clean.filter((r) => { const a = analyze(r.deal); return a.flags.some((f) => f.level === 'red') && a.overall !== 'red'; });
+  console.log(`      (info: ${hidden.length}/${COUNT} random deals have a Red item but a non-Red overall rating; ${hidden.filter((r) => checkRatings(r.deal).some((i) => i.level === 'warn')).length} flagged as warnings)`);
+}
 
 // ---------------------------------------------------------------- 6. Junk input
 section('6. Junk input must never crash the checks');

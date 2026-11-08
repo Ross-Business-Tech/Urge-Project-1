@@ -160,3 +160,9 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .verify-pass { margin-top: 10px; font-size: 14px; }
 .verify-pass summary { cursor: pointer; color: var(--muted); }
 .verify-pass ul { margin-top: 6px; }
+
+/* Sample loans and randomizer */
+.samples { display: grid; gap: 12px; margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.samples label span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.samples select, .samples input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; background: #fbfcfd; min-width: 0; }
+.random { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
