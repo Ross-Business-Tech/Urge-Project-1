@@ -20,4 +20,27 @@ export const rubric = {
   // PROPOSED rule (not yet confirmed by URGE): the overall rating should never look better than the red flags.
   // Any red flag => overall at least yellow. Red in these areas => overall red.
   criticalRedAreas: ['Financial strength', 'Repayment', 'Sources & Uses', 'Experience'],
+  // "Anything unusual gets flagged": outlier thresholds. These are warnings to confirm, not errors. URGE staff should tune them.
+  atypical: {
+    loanRange: [25000, 25000000],
+    projectCostRange: [50000, 1000000000],
+    minLoanShareOfProject: 0.02,
+    maxLiabilitiesToEquity: 10,
+    maxLoanToLatestRevenue: 3,
+    maxCoverage: 10, // expected proceeds / amount owed
+    costPerSqFt: [40, 2500],
+    maxJobs: 1000,
+    maxYears: 50,
+    maxProjects: 150,
+    maxProjectsPerYear: 12,
+    yearRange: [1990, 2040],
+    memoYearRange: [2020, 2040],
+    marginRange: [-0.5, 0.6],
+    revenueChange: [-0.5, 1.0], // year-over-year
+    minActualYears: 2,
+    shortText: 20,
+    longText: 5000,
+    mostlyBlank: 0.4, // share of fields blank before the whole deal is called mostly blank
+    topRowShare: 0.9,
+  },
 };

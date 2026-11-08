@@ -2,6 +2,7 @@ import { checkDeal } from './checks.js';
 import { checkRatings } from './ratings.js';
 import { checkMemoText } from './memoText.js';
 import { applyFacts, checkFacts } from './memoFacts.js';
+import { checkAtypical } from './atypical.js';
 
 // Runs every check and returns { items, counts }.
 // `memoText` is the written memo as plain text; `facts` are the figures read back from the memo (see memoFacts.js).
@@ -11,7 +12,7 @@ export function verifyAll(deal, memoText, facts) {
   try {
     const applied = facts ? applyFacts(deal, facts) : null;
     const effective = applied ? applied.effective : deal;
-    items = [...checkDeal(effective), ...checkRatings(deal, facts?.overall)];
+    items = [...checkDeal(effective), ...checkAtypical(effective), ...checkRatings(deal, facts?.overall)];
     if (memoText) items.push(...checkMemoText(memoText, deal, effective));
     if (facts) items.push(...checkFacts(deal, facts, applied));
   } catch (e) {

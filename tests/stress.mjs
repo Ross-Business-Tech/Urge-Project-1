@@ -5,7 +5,7 @@ import { analyze } from '../src/lib/analysis.js';
 import { verifyAll } from '../src/lib/verify/index.js';
 import { rateIndependent, checkRatings, RANK } from '../src/lib/verify/ratings.js';
 import { checkMemoText } from '../src/lib/verify/memoText.js';
-import { randomDeal, MISTAKES, MAX_MISTAKES } from '../src/lib/randomDeal.js';
+import { randomDeal, MISTAKES, MAX_MISTAKES, CHAOS } from '../src/lib/randomDeal.js';
 import { readFactsFromHtml, applyFacts } from '../src/lib/verify/memoFacts.js';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -174,6 +174,21 @@ test(`...and fixing the memo clears all ${MAX_MISTAKES} at once`, () => {
   }
   return stuck.length === 0 || `${stuck.length} still flagged, e.g. ${stuck.slice(0, 4).join(', ')}`;
 });
+for (const type of ['junk-rate', 'junk-years', 'absurd-loan']) {
+  test(`chaos ${type}: flagged in the form; gone once the memo shows the correct value`, () => {
+    for (let i = 0; i < 40; i++) {
+      const good = gen0(i + 60000, { profile: 'any' }).deal;
+      if (type === 'junk-years' && Number(good.yearsExperience) === 0) continue; // junk prints as "0 years", so a true 0 looks identical
+      const messy = structuredClone(good); CHAOS[type].apply(messy, { pick: (a) => a[0], int: (a) => a, rnd: Math.random });
+      const f0 = verifyAll(messy, memoText(messy), readFactsFromHtml(memoHtml(messy))).items;
+      if (!f0.some((it) => it.level === CHAOS[type].level && CHAOS[type].re.test(it.title))) return `seed #${990000 + 60000 + i}: not flagged to begin with`;
+      const hg = memoHtml(good);
+      const after = verifyAll(messy, hg.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' '), readFactsFromHtml(hg)).items;
+      if (after.some((it) => it.level !== 'pass' && it.area !== 'Memo vs form' && CHAOS[type].re.test(it.title))) return `seed #${990000 + 60000 + i}: still flagged after fixing the memo`;
+    }
+    return true;
+  });
+}
 test('fixing ONE of several mentions of the rate leaves a "differs across the memo" failure', () => {
   const d = gen0(31, { profile: 'any' }).deal; const h = memoHtml(d);
   const r = String(Number(d.interestRate));
@@ -285,6 +300,36 @@ test('hand-edited memo numbers are caught on random deals', () => {
     if (!checkMemoText(edited, r.deal).some((i) => i.level === 'fail')) miss++;
   }
   return miss === 0 || `${miss}/100 edits not caught`;
+});
+const caught = (p, items) => (p.test ? p.test(items) : items.some((it) => it.level === p.level && p.re.test(it.title)));
+test('Chaotic deals: EVERY anomaly is flagged (junk numbers, absurd amounts, odd text, blanks, jumps), with 0-10 planted mistakes mixed in', () => {
+  const n = Math.max(150, Math.round(COUNT / 2));
+  const stats = {}; const missed = []; let flags = 0, fewest = 99;
+  for (let i = 0; i < n; i++) {
+    const r = gen(i + 70000, { profile: 'chaotic', mistakes: i % (MAX_MISTAKES + 1) });
+    const items = verifyAll(r.deal, memoText(r.deal), readFactsFromHtml(memoHtml(r.deal))).items;
+    const nf = items.filter((it) => it.level !== 'pass').length; flags += nf; fewest = Math.min(fewest, nf);
+    for (const p of r.planted) {
+      const key = p.type.startsWith('blank-') ? 'blank-field' : p.type;
+      (stats[key] ||= { planted: 0, caught: 0 }).planted++;
+      if (caught(p, items)) stats[key].caught++; else missed.push(`#${r.seed} ${p.type}`);
+    }
+  }
+  for (const [k, v] of Object.entries(stats)) console.log(`      ${k.padEnd(22)} ${v.caught}/${v.planted} flagged`);
+  console.log(`      (an average chaotic deal raises ${(flags / n).toFixed(1)} findings; the quietest raised ${fewest})`);
+  return missed.length === 0 || `${missed.length} anomalies NOT flagged, e.g. ${missed.slice(0, 4).join(', ')}`;
+});
+test('a chaotic deal is never quiet: at least 5 findings every time', () => {
+  for (let i = 0; i < 100; i++) { const r = gen(i + 71000, { profile: 'chaotic' }); const k = verifyAll(r.deal, memoText(r.deal), readFactsFromHtml(memoHtml(r.deal))).items.filter((it) => it.level !== 'pass').length; if (k < 5) return `seed #${r.seed} raised only ${k}`; }
+  return true;
+});
+test('clean strong and medium deals raise no data-quality or unusual-value warnings (no noise)', () => {
+  const noisy = clean.filter((r) => r.profile !== 'weak').filter((r) => verifyAll(r.deal).items.some((it) => it.level !== 'pass' && ['Atypical', 'Data quality'].includes(it.area)));
+  return noisy.length === 0 || `${noisy.length} clean deals flagged, e.g. #${noisy[0].seed}: ${verifyAll(noisy[0].deal).items.find((it) => it.level !== 'pass' && ['Atypical', 'Data quality'].includes(it.area)).title}`;
+});
+test('the memo showing "NaN" or "undefined" is itself flagged', () => {
+  const t = 'The loan is $750,000 and annual interest is NaN.';
+  return checkMemoText(t, base()).some((i) => i.level === 'fail' && /broken text/.test(i.title));
 });
 test('chaotic deals (blanks, extremes, odd text): no crash, no NaN/undefined in the memo', () => {
   const bad = [];

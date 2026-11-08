@@ -58,19 +58,19 @@ const COMMITTEES = ['Investment Committee (sample members A, B, C)', 'Investment
 
 // Each plantable mistake and the check that must catch it.
 export const MISTAKES = {
-  'sources-uses': { level: 'fail', re: /do not balance/, apply: (d) => { d.projectSources[0].amount = String(Number(d.projectSources[0].amount) + 250000); } },
-  'loan-uses': { level: 'warn', re: /Loan uses/, apply: (d) => { d.urgeUses[0].amount = String(Number(d.urgeUses[0].amount) + 40000); } },
-  'balance-sheet': { level: 'fail', re: /Balance sheet/, apply: (d) => { d.totalEquity = String(Math.round(Number(d.totalEquity) * 1.4 + 100000)); } },
-  'repay-after-maturity': { group: 'timing', level: 'fail', re: /after the loan matures/, apply: (d) => { d.exitMonth = String(Number(d.termMonths) + 6); } },
-  'rate-typo': { level: 'warn', re: /Interest rate looks wrong/, apply: (d) => { d.interestRate = '85'; } },
-  'term-typo': { group: 'timing', level: 'warn', re: /Term looks wrong/, apply: (d) => { d.termMonths = '360'; } },
-  'duplicate-year': { group: 'financials', level: 'fail', re: /twice/, apply: (d) => { const f = d.financials; f[f.length - 1].year = f[f.length - 2].year; } },
-  'net-over-revenue': { group: 'financials', level: 'fail', re: /Net income is higher/, apply: (d) => { const r = d.financials[0]; r.netIncome = String(Number(r.revenue) * 2); } },
-  'walk-score': { level: 'fail', re: /Walk Score/, apply: (d) => { d.walkScore = '150'; } },
-  'one-repayment-path': { group: 'repayment-list', level: 'warn', re: /Only 1/, apply: (d) => { d.repaymentOptions = d.repaymentOptions.slice(0, 1); } },
-  'no-worst-case': { group: 'repayment-list', level: 'warn', re: /No worst-case/, apply: (d) => { d.repaymentOptions = REPAY_PLAIN.map((option) => ({ option })); } },
-  'negative-cash': { level: 'fail', re: /Negative amount/, apply: (d) => { d.cash = '-5000'; } },
-  'project-cost': { level: 'warn', re: /Total project cost differs/, apply: (d) => { d.totalProjectCost = String(Math.round(Number(d.totalProjectCost) * 1.15 / 1000) * 1000); } },
+  'sources-uses': { touches: ['projectSources','projectUses'], level: 'fail', re: /do not balance/, apply: (d) => { d.projectSources[0].amount = String(Number(d.projectSources[0].amount) + 250000); } },
+  'loan-uses': { touches: ['loanAmount','urgeUses'], level: 'warn', re: /Loan uses/, apply: (d) => { d.urgeUses[0].amount = String(Number(d.urgeUses[0].amount) + 40000); } },
+  'balance-sheet': { touches: ['totalAssets','totalLiabilities','totalEquity'], level: 'fail', re: /Balance sheet/, apply: (d) => { d.totalEquity = String(Math.round(Number(d.totalEquity) * 1.4 + 100000)); } },
+  'repay-after-maturity': { touches: ['exitMonth','termMonths'], group: 'timing', level: 'fail', re: /after the loan matures/, apply: (d) => { d.exitMonth = String(Number(d.termMonths) + 6); } },
+  'rate-typo': { touches: ['interestRate'], level: 'warn', re: /Interest rate looks wrong/, apply: (d) => { d.interestRate = '85'; } },
+  'term-typo': { touches: ['termMonths','exitMonth'], group: 'timing', level: 'warn', re: /Term looks wrong/, apply: (d) => { d.termMonths = '360'; } },
+  'duplicate-year': { touches: ['financials'], group: 'financials', level: 'fail', re: /twice/, apply: (d) => { const f = d.financials; f[f.length - 1].year = f[f.length - 2].year; } },
+  'net-over-revenue': { touches: ['financials'], group: 'financials', level: 'fail', re: /Net income is higher/, apply: (d) => { const r = d.financials[0]; r.netIncome = String(Number(r.revenue) * 2); } },
+  'walk-score': { touches: ['walkScore'], level: 'fail', re: /Walk Score/, apply: (d) => { d.walkScore = '150'; } },
+  'one-repayment-path': { touches: ['repaymentOptions'], group: 'repayment-list', level: 'warn', re: /Only 1/, apply: (d) => { d.repaymentOptions = d.repaymentOptions.slice(0, 1); } },
+  'no-worst-case': { touches: ['repaymentOptions'], group: 'repayment-list', level: 'warn', re: /No worst-case/, apply: (d) => { d.repaymentOptions = REPAY_PLAIN.map((option) => ({ option })); } },
+  'negative-cash': { touches: ['cash'], level: 'fail', re: /Negative amount/, apply: (d) => { d.cash = '-5000'; } },
+  'project-cost': { touches: ['totalProjectCost','projectUses'], level: 'warn', re: /Total project cost differs/, apply: (d) => { d.totalProjectCost = String(Math.round(Number(d.totalProjectCost) * 1.15 / 1000) * 1000); } },
 };
 
 // The most mistakes that can be planted at once (some pairs would hide each other, so each group counts once)
@@ -88,6 +88,33 @@ const PARAMS = {
   strong: { years: [11, 22], deRange: [0.6, 1.8], months: [14, 30], cover: [1.6, 2.4], walk: [70, 96], greens: [4, 4], actualG: [0.06, 0.14], projBoost: [1.0, 1.3], margin: [0.1, 0.16] },
   mid: { years: [5, 9], deRange: [2.05, 2.95], months: [6.5, 11], cover: [1.22, 1.48], walk: [50, 85], greens: [2, 3], actualG: [0.08, 0.2], projBoost: [1.2, 1.9], margin: [0.06, 0.12] },
   weak: { years: [0, 4], deRange: [3.2, 5], months: [1, 5], cover: [0.6, 1.15], walk: [25, 65], greens: [0, 1], actualG: [0.02, 0.1], projBoost: [3, 6], margin: [-0.02, 0.06] },
+};
+
+
+// Fields chaos may blank out, with the label the report uses for them
+export const BLANKABLE = {
+  committee: 'Investment committee', preparedBy: 'Prepared by', hqCity: 'Firm location', principalTitle: 'Principal title', principalBio: 'Principal bio',
+  orgStructure: 'Organizational structure', collateral: 'Collateral', projectAddress: 'Project address', assetType: 'Property type', neighborhood: 'Neighborhood description',
+  team: 'Development team', repaymentOptions: 'Repayment options', projectsCompleted: 'Projects completed', squareFeet: 'Size (sq ft)', jobsCreated: 'Jobs created', walkScore: 'Walk Score',
+  bipocOwned: 'BIPOC-owned answer', impactArea: 'Impact-area answer', loanPurpose: 'Reason for loan', projectName: 'Project name', principalName: 'Principal name', firmName: 'Borrower firm name',
+};
+const BLANK_DEPENDS = {};
+
+// Chaos anomalies and the check that must catch each one
+export const CHAOS = {
+  'junk-rate': { touches: ['interestRate'], level: 'fail', re: /Interest rate is not a number/, apply: (d, { pick }) => { d.interestRate = pick(['abc', 'high', 'N/A']); } },
+  'junk-years': { touches: ['yearsExperience'], level: 'fail', re: /Years of experience is not a number/, apply: (d) => { d.yearsExperience = 'many'; } },
+  'absurd-loan': { touches: ['loanAmount'], level: 'warn', re: /Loan amount is unusual/, apply: (d, { pick }) => { d.loanAmount = pick(['1', '50', '999999999']); } },
+  'html-name': { touches: ['principalName'], level: 'warn', re: /HTML or code characters/, apply: (d) => { d.principalName = '<b>Dr. O\u2019Neil & Sons</b> "quoted"'; } },
+  'junk-text': { touches: ['neighborhood'], level: 'warn', re: /placeholder or test text/, apply: (d, { pick }) => { d.neighborhood = pick(['asdfasdf', 'test', 'lorem ipsum dolor sit amet']); } },
+  'tiny-bio': { touches: ['principalBio'], level: 'warn', re: /Text is very short/, apply: (d) => { d.principalBio = 'ok'; } },
+  'bad-date': { touches: ['memoDate'], level: 'fail', re: /Memo date is not a valid date/, apply: (d) => { d.memoDate = '2026-13-45'; } },
+  'revenue-jump': { group: 'financials', touches: ['financials'], level: 'warn', re: /Sudden jump in revenue/, apply: (d) => { const f = d.financials; f[1].revenue = String(Number(f[0].revenue) * 12); } },
+  'extreme-margin': { group: 'financials', touches: ['financials'], level: 'warn', re: /Unusual profit margin/, apply: (d) => { const r = d.financials[0]; r.netIncome = String(Math.round(Number(r.revenue) * 0.9)); } },
+  'extreme-leverage': { touches: ['totalAssets', 'totalLiabilities', 'totalEquity'], level: 'warn', re: /Very high leverage/, apply: (d) => { d.totalLiabilities = String(Number(d.totalEquity) * 30); d.totalAssets = String(Number(d.totalLiabilities) + Number(d.totalEquity)); } },
+  'duplicate-team-member': { group: 'team', touches: ['team'], level: 'warn', re: /same name/, apply: (d) => { d.team[1].name = d.team[0].name; } },
+  'thin-team-member': { group: 'team', touches: ['team'], level: 'warn', re: /missing a name, role or bio/, apply: (d) => { d.team[1].role = ''; d.team[1].bio = ''; } },
+  'wrong-answer': { touches: ['bipocOwned'], level: 'warn', re: /not Yes or No/, apply: (d) => { d.bipocOwned = 'maybe'; } },
 };
 
 export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
@@ -128,7 +155,6 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
   const ownerPct = pick([100, 100, 75, 60, 51]);
   const projectPct = pick([10, 20, 25, 30]);
   const projName = `${pick(PROJ_A)} ${pick(PROJ_B)}`;
-  const sqft = th(int(8, 60) * 1000, 1000);
   const greenCount = int(...P.greens);
   const flags = shuffle([0, 1, 2, 3]).slice(0, greenCount);
   const bipoc = flags.includes(0);
@@ -138,6 +164,7 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
 
   // --- Project money
   const projectCost = th(loan * f(3, 10), 10000);
+  const sqft = Math.max(4000, th(projectCost / f(150, 600), 1000));
   const uses = split(projectCost, [int(10, 20), int(55, 70), int(8, 14), int(4, 9)], ['Land acquisition', 'Hard construction costs', 'Soft costs', 'Financing costs & reserves']);
   const sources = split(projectCost, [int(45, 65), int(15, 25), int(4, 9), int(6, 12)], ['Senior construction loan (bank)', 'Outside investor equity', 'Sponsor equity (funded by loan)', 'Local small-business grant']);
   const loanUses = split(loan, [int(25, 45), int(25, 40), int(10, 25)], ['Predevelopment (architecture, permits, environmental)', 'Sponsor equity contribution to project', 'Two new staff positions (18 months)']);
@@ -169,12 +196,14 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
   opts.push(pick(REPAY_WORST));
   const repaymentOptions = shuffle(opts).map((option) => ({ option }));
 
+  const usedNames = new Set([principal]);
+  const uniqueName = () => { let n; do { n = `${pick(FIRST)} ${pick(LAST)}`; } while (usedNames.has(n)); usedNames.add(n); return n; };
   const team = [
     { name: principal, company: firm.replace(/ LLC$/, ''), role: 'Developer / Principal', bio: `Founder; leads acquisition, financing and construction oversight. ${years} years in commercial construction and development.` },
-    { name: `${pick(FIRST)} ${pick(LAST)}`, company: 'Sample Design Studio', role: 'Architect', bio: `Licensed architect with ${int(8, 25)} years of small-format retail and office design experience.` },
-    { name: `${pick(FIRST)} ${pick(LAST)}`, company: 'Example Construction Co.', role: 'General Contractor', bio: `GC with a portfolio of ${int(10, 40)}+ commercial projects under $10M in the region.` },
+    { name: uniqueName(), company: 'Sample Design Studio', role: 'Architect', bio: `Licensed architect with ${int(8, 25)} years of small-format retail and office design experience.` },
+    { name: uniqueName(), company: 'Example Construction Co.', role: 'General Contractor', bio: `GC with a portfolio of ${int(10, 40)}+ commercial projects under $10M in the region.` },
   ];
-  if (chance(0.5)) team.push({ name: `${pick(FIRST)} ${pick(LAST)}`, company: 'Sample Property Services', role: 'Property Manager', bio: `Manages ${int(150, 900)} units of mixed-use and multifamily property in the city.` });
+  if (chance(0.5)) team.push({ name: uniqueName(), company: 'Sample Property Services', role: 'Property Manager', bio: `Manages ${int(150, 900)} units of mixed-use and multifamily property in the city.` });
 
   const deal = {
     ...structuredClone(emptyDeal),
@@ -225,16 +254,9 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
   };
 
   const planted = [];
-  if (chaotic) {
-    // Anything goes: blank out fields, use extreme values, add odd text
-    const blankable = Object.keys(deal).filter((k) => !['fundName'].includes(k));
-    for (const k of shuffle(blankable).slice(0, int(0, 10))) deal[k] = Array.isArray(deal[k]) ? [] : '';
-    if (chance(0.3)) deal.loanAmount = pick(['1', '999999999', '0', '12.5']);
-    if (chance(0.3)) deal.interestRate = pick(['0', '45', 'abc', '-3']);
-    if (chance(0.2)) deal.principalName = '<b>Dr. O’Neil & Sons</b> "quoted"';
-  } else if (mistakes > 0) {
-    // Some mistakes would hide each other (e.g. a typo'd term masks "repayment after maturity"),
-    // so never plant two from the same group.
+  const touched = new Set();
+  // Planted mistakes (never two that would hide each other)
+  if (mistakes > 0) {
     const used = new Set();
     for (const type of shuffle(Object.keys(MISTAKES))) {
       if (planted.length >= mistakes) break;
@@ -242,7 +264,31 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
       if (used.has(g)) continue;
       used.add(g);
       MISTAKES[type].apply(deal);
+      MISTAKES[type].touches.forEach((t) => touched.add(t));
       planted.push({ type, level: MISTAKES[type].level, re: MISTAKES[type].re });
+    }
+  }
+  // Chaos: junk, absurd values, odd text and blanks. Every anomaly is recorded so tests can demand it is flagged.
+  if (chaotic) {
+    const usedGroups = new Set();
+    const want = int(4, 9);
+    let n = 0;
+    for (const type of shuffle(Object.keys(CHAOS))) {
+      if (n >= want) break;
+      const c = CHAOS[type];
+      if (usedGroups.has(c.group || type) || c.touches.some((t) => touched.has(t))) continue;
+      usedGroups.add(c.group || type);
+      c.apply(deal, { rnd, int, pick });
+      c.touches.forEach((t) => touched.add(t));
+      planted.push({ type, level: c.level, re: c.re });
+      n++;
+    }
+    // Blank out some fields that nothing else depends on
+    const blankable = Object.keys(BLANKABLE).filter((k) => !touched.has(k) && !touched.has(BLANK_DEPENDS[k] || ''));
+    for (const k of shuffle(blankable).slice(0, int(2, 8))) {
+      deal[k] = Array.isArray(deal[k]) ? [] : '';
+      touched.add(k);
+      planted.push({ type: `blank-${k}`, level: 'warn', test: (items) => items.some((it) => it.level !== 'pass' && /empty|blank/i.test(it.title) && it.detail.includes(BLANKABLE[k])) });
     }
   }
   return { deal, seed: Number(seed) || 1, profile: chosen, planted };

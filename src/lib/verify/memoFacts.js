@@ -28,6 +28,12 @@ export const FIELDS = [
     [R('with a\\s+' + PCT + '% origination fee')], [R('Origination fee\\s+' + PCT + '%')] ] },
   { key: 'walkScore', label: 'Walk Score', kind: 'n', shown: (d) => num(d.walkScore), pats: [[R('Walk Score of\\s+' + NUMBER)]] },
   { key: 'ownerSharePct', label: "Principal's ownership", kind: '%', shown: (d) => num(d.ownerSharePct), pats: [[R('owns\\s+' + PCT + '% of [^.]{0,120}?, implying')]] },
+  { key: 'yearsExperience', label: 'Years of experience', kind: 'n', shown: (d) => num(d.yearsExperience), pats: [
+    [R('who brings\\s+' + NUMBER + ' years')], [R('has\\s+' + NUMBER + ' years of experience')] ] },
+  { key: 'projectsCompleted', label: 'Projects completed', kind: 'n', shown: (d) => num(d.projectsCompleted), pats: [
+    [R('construction experience and\\s+' + NUMBER + ' completed projects')], [R('of experience and has completed\\s+' + NUMBER + ' projects')] ] },
+  { key: 'squareFeet', label: 'Size (sq ft)', kind: 'n', shown: (d) => num(d.squareFeet), pats: [[R('of about\\s+' + AMT + ' sq ft')]] },
+  { key: 'jobsCreated', label: 'Jobs created', kind: 'n', shown: (d) => num(d.jobsCreated), pats: [[R('about\\s+' + NUMBER + ' jobs')]] },
   { key: 'totalProjectCost', label: 'Total project cost', kind: '$', shown: (d) => num(d.totalProjectCost) || sum(d.projectUses || []), pats: [
     [R(',\\s*a\\s+' + AMT + '\\s+[^$]{0,120}?project\\.')], [R('of total project cost\\s+\\(' + AMT + '\\)')] ] },
   { key: 'totalAssets', label: 'Total assets', kind: '$', shown: (d) => num(d.totalAssets), pats: [[R('reports total assets of\\s+' + AMT)]] },
@@ -129,9 +135,11 @@ export function applyFacts(deal, facts) {
     diffs.push({ label: 'Repayment options', memo: 'text added', form: 'none', value: null });
   }
 
-  // Blank required fields that were typed into the memo
-  const filled = (cond, key, label) => { if (!has(d[key]) && cond) { d[key] = '(entered in memo)'; diffs.push({ label, memo: 'filled in', form: 'blank', value: null }); } };
-  filled(!facts.placeholders.includes('Loan purpose'), 'loanPurpose', 'Reason for the loan');
+  // Blank fields that were typed into the memo (the memo shows a [... to be added] placeholder until then)
+  const PLACEHOLDERS = { loanPurpose: ['Loan purpose', 'Reason for the loan'], principalBio: ['Principal bio', 'Principal bio'], projectAddress: ['Address', 'Project address'], collateral: ['Collateral', 'Collateral'],
+    committee: ['Investment committee', 'Investment committee'], preparedBy: ['Underwriter', 'Prepared by'], neighborhood: ['Neighborhood description', 'Neighborhood description'], orgStructure: ['Organizational structure', 'Organizational structure'] };
+  const filled = (cond, key, label) => { if (!has(d[key]) && cond) { d[key] = '(entered in the memo by hand)'; diffs.push({ label, memo: 'filled in', form: 'blank', value: null }); } };
+  for (const [key, [ph, label]] of Object.entries(PLACEHOLDERS)) filled(!facts.placeholders.includes(ph), key, label);
   filled(!/\bthe Borrower\b/.test(facts.text), 'firmName', 'Borrower name');
   filled(!/is led by the principal/.test(facts.text), 'principalName', 'Principal name');
   filled(!/\bthe Project\b/.test(facts.text), 'projectName', 'Project name');

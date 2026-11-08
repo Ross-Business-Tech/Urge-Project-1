@@ -24,6 +24,7 @@ export function checkDeal(deal) {
   // --- Plausible ranges
   const range = (key, label, [lo, hi], unit, level = 'warn') => {
     if (!has(deal[key])) return;
+    if (!Number.isFinite(Number(String(deal[key]).replace(/[$,%\s]/g, '')))) return; // text in a number field is reported as "not a number"
     const v = num(deal[key]);
     if (v < lo || v > hi) add('Data', level, `${label} looks wrong: ${deal[key]}${unit}`, `Expected between ${lo} and ${hi}${unit}. Typo (extra zero, wrong unit)?`);
     else add('Data', 'pass', `${label} is in a normal range`);

@@ -64,6 +64,8 @@ export function allowedNumbers(deal) {
 }
 
 // `effective` (optional) is the deal as the memo now reads, so hand-fixed figures that are consistent are accepted
+const BROKEN = /\bNaN\b|\bundefined\b|\[object|\bInfinity\b|Invalid Date/;
+
 export function checkMemoText(text, deal, effective) {
   const allowed = effective ? [...allowedNumbers(deal), ...allowedNumbers(effective)] : allowedNumbers(deal);
   const found = new Set((text || '').match(TOKEN) || []);
@@ -78,6 +80,8 @@ export function checkMemoText(text, deal, effective) {
     });
     if (!ok) bad.push(tok.trim());
   }
-  if (!bad.length) return [{ area: 'Memo text', level: 'pass', title: `All ${checked} figures in the memo trace back to your data`, detail: '' }];
-  return bad.map((t) => ({ area: 'Memo text', level: 'fail', title: `${t} is in the memo but not in your deal data`, detail: 'Either it was typed into the memo by hand or it is a mistake. Check it against the source.' }));
+  const broken = (text || '').match(BROKEN);
+  const extra = broken ? [{ area: 'Memo text', level: 'fail', title: `The memo shows broken text: "${broken[0]}"`, detail: 'A calculation or field produced an invalid value. Check the numbers feeding this part of the memo.' }] : [];
+  if (!bad.length) return [...extra, { area: 'Memo text', level: 'pass', title: `All ${checked} figures in the memo trace back to your data`, detail: '' }];
+  return [...extra, ...bad.map((t) => ({ area: 'Memo text', level: 'fail', title: `${t} is in the memo but not in your deal data`, detail: 'Either it was typed into the memo by hand or it is a mistake. Check it against the source.' }))];
 }
