@@ -183,3 +183,10 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .verify-time { margin: 4px 0 0; }
 .verify.checking .verify-group, .verify.checking .verify-pass { opacity: .4; transition: opacity .2s; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Notice shown when the memo was edited by hand */
+.verify-sync { background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 8px 0 4px; font-size: 14px; }
+.verify-sync ol { margin: 6px 0 6px 18px; padding: 0; }
+.verify-sync .btn { margin-top: 8px; display: block; }
+.verify .verify-sync ol { list-style: decimal; display: block; }
+.verify .verify-sync li { display: list-item; }

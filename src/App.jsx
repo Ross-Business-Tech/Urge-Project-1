@@ -230,7 +230,7 @@ export default function App() {
                 <button className="btn text" onClick={() => setTab('data')}>← Edit data</button>
               </div>
             </div>
-            {report && <VerificationReport report={report} onRecheck={runChecks} checking={checking} />}
+            {report && <VerificationReport report={report} onRecheck={runChecks} checking={checking} onEditData={() => setTab('data')} />}
             <div className="paper" ref={memoRef} contentEditable suppressContentEditableWarning spellCheck key={generated.id}>
               <Memo deal={generated.deal} />
             </div>

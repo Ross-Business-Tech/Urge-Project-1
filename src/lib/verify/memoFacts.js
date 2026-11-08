@@ -155,8 +155,8 @@ export function checkFacts(deal, facts, applied = applyFacts(deal, facts)) {
       area: 'Memo vs form', level: 'warn',
       title: `${x.label} in the memo (${x.memo}) differs from the deal form (${x.form})`,
       detail: known(x.value)
-        ? 'The memo was changed by hand. The checks above use what the memo says now. Update the deal data (Edit data) and write the memo again so the form matches.'
-        : 'This figure is not anywhere in your deal data, so confirm it against the source. The checks above use what the memo says now. Update the deal data so the form matches.',
+        ? 'The memo was changed by hand, and the checks use what it says now. To finish the fix: correct this on the Deal data tab, then write the memo again.'
+        : 'This figure is not anywhere in your deal data, so confirm it against the source. To finish the fix: correct it on the Deal data tab, then write the memo again.',
     });
   }
   const a = analyze(deal);
