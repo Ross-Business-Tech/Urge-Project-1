@@ -49,6 +49,16 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 20; background: var(--green-bg); color: var(--green); border: 1px solid currentColor; padding: 8px 16px; border-radius: 8px; font-size: 14px; max-width: calc(100% - 32px); }
 .toast.err { background: var(--red-bg); color: var(--red); }
 
+/* News check */
+.news-check .small { margin: 0 0 8px; }
+.news-check a { color: var(--brand); }
+.news-error { background: var(--red-bg); color: var(--red); padding: 8px 12px; border-radius: 7px; font-size: 14px; margin: 8px 0 0; }
+.news-summary { background: var(--soft); padding: 8px 12px; border-radius: 7px; font-size: 14px; margin: 8px 0; }
+.btn:disabled { opacity: .55; cursor: default; }
+.memo .news-list { list-style: none; padding: 0; display: grid; gap: 10px; }
+.memo .news-list p { margin: 3px 0 0; font-size: 14px; color: var(--muted); }
+.memo a { color: var(--brand); }
+
 /* Memo toolbar */
 .memo-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .flag-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

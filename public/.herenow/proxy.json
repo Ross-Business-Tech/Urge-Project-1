@@ -1,0 +1,19 @@
+{
+  "proxies": {
+    "/api/news": {
+      "upstream": "https://openrouter.ai/api/v1/chat/completions",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer ${OPENROUTER_API_KEY}"
+      }
+    },
+    "/api/gnews": {
+      "upstream": "https://news.google.com/rss/search",
+      "method": "GET"
+    },
+    "/api/bnews": {
+      "upstream": "https://www.bing.com/news/search",
+      "method": "GET"
+    }
+  }
+}

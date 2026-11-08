@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { analyze, LEVEL_LABEL } from '../lib/analysis.js';
 import { num, has, money, pct, fmtDate, or } from '../lib/format.js';
 import { BarCompare, StackedShare, Columns } from './Charts.jsx';
+import { safeUrl } from '../lib/news.js';
 
 const Missing = ({ what }) => <span className="missing">[{what}: to be added]</span>;
 const v = (val, what) => (has(val) ? val : <Missing what={what} />);
@@ -76,7 +77,7 @@ function MemoDoc({ deal }) {
         </p>
         <p>
           Based on the analysis below, the underwriting team recommends that the committee <strong>{recommendation}</strong>.
-          The review produced {reds.length} red and {yellows.length} yellow item{yellows.length === 1 ? '' : 's'}, listed in Section 10.
+          The review produced {reds.length} red and {yellows.length} yellow item{yellows.length === 1 ? '' : 's'}, listed in Section 11.
         </p>
       </section>
 
@@ -109,7 +110,7 @@ function MemoDoc({ deal }) {
         {a.loanShareOfProject !== null && (
           <Note>
             The {fund} loan equals {pct(a.loanShareOfProject)} of total project cost ({money(a.projectCost)}).
-            {Math.abs(a.srcTotal - a.useTotal) > 1 && a.srcTotal && a.useTotal ? ` Sources and uses differ by ${money(Math.abs(a.srcTotal - a.useTotal))}; see Section 10.` : ' Project sources and uses are balanced.'}
+            {Math.abs(a.srcTotal - a.useTotal) > 1 && a.srcTotal && a.useTotal ? ` Sources and uses differ by ${money(Math.abs(a.srcTotal - a.useTotal))}; see Section 11.` : ' Project sources and uses are balanced.'}
           </Note>
         )}
       </section>
@@ -268,8 +269,36 @@ function MemoDoc({ deal }) {
         )}
       </section>
 
+      <section>
+        <h2>10. Recent news &amp; public information</h2>
+        {deal.newsSummary && <p>{deal.newsSummary}</p>}
+        {deal.news?.length ? ['Borrower', 'Site'].map((about) => {
+          const items = deal.news.filter((n) => (n.about || 'Borrower') === about && n.headline);
+          if (!items.length) return null;
+          return (
+            <div key={about}>
+              <h3>{about === 'Borrower' ? `About ${firm} and ${principal}` : `Around the site`}</h3>
+              <ul className="news-list">
+                {items.map((n, i) => {
+                  const href = safeUrl(n.url);
+                  return (
+                    <li key={i}>
+                      <Badge level={['red', 'yellow', 'green'].includes(n.level) ? n.level : 'yellow'} />{' '}
+                      <strong>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{n.headline}</a> : n.headline}</strong>
+                      {(n.source || n.date) && <span className="small"> ({[n.source, n.date].filter(Boolean).join(', ')})</span>}
+                      {n.summary && <p>{n.summary}{n.relevance ? ` ${n.relevance}` : ''}</p>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        }) : <p><Missing what="News search" /></p>}
+        <Note>Underwriter to confirm: open each source and verify it refers to this borrower and site before committee.{deal.newsCheckedAt ? ` Search run ${deal.newsCheckedAt}.` : ''}</Note>
+      </section>
+
       <section className="flags-section">
-        <h2>10. Underwriter review: flags</h2>
+        <h2>11. Underwriter review: flags</h2>
         <p className="small">Automatically generated checks. Each one shows the evidence and rule behind it. Confirm or dismiss each before sending to committee.</p>
         {a.flags.length ? (
           <ul className="flags">
@@ -285,7 +314,7 @@ function MemoDoc({ deal }) {
       </section>
 
       <section>
-        <h2>11. Term sheet</h2>
+        <h2>12. Term sheet</h2>
         <table className="terms">
           <tbody>
             <tr><th>Borrower</th><td>{firm}</td></tr>
