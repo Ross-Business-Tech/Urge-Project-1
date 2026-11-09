@@ -36,6 +36,8 @@ const fieldLabel = (f) => FIELDS[f]?.[0] || f;
 function whereFrom(field, rowKey, origins = {}) {
   const section = FIELDS[field] ? `Deal data page, section ${S[FIELDS[field][1]]}` : 'Deal data page';
   if (origins.typed?.[field]) return { kind: 'typed', text: `Typed on the ${section}` };
+  const doc = origins.docs?.[field];
+  if (doc) return { kind: 'doc', text: `Read by AI from “${doc.file}”${doc.quote ? `: “${doc.quote}”` : ''}` };
   if (origins.kind === 'file') {
     const line = origins.lines?.[rowKey] ?? origins.lines?.[field];
     if (line) return { kind: 'file', text: `Uploaded spreadsheet “${origins.fileName}”, row ${line}` };
