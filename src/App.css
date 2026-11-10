@@ -152,6 +152,36 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
   .chart, table, .flag { break-inside: avoid; }
 }
 
+/* Verification report */
+.verify { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--green); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; }
+.verify-warn { border-left-color: var(--yellow); }
+.verify-fail { border-left-color: var(--red); }
+.verify-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.verify-note { margin: 4px 0 8px; }
+.verify h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 10px 0 4px; }
+.verify ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.verify li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.verify li small { display: block; color: var(--muted); font-size: 13px; }
+.verify li em { font-style: normal; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; margin-left: 4px; white-space: nowrap; }
+.v-icon { flex: 0 0 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; margin-top: 1px; }
+.v-fail .v-icon { background: var(--red-bg); color: var(--red); }
+.v-warn .v-icon { background: var(--yellow-bg); color: var(--yellow); }
+.v-pass .v-icon { background: var(--green-bg); color: var(--green); }
+.verify-pass { margin-top: 10px; font-size: 14px; }
+.verify-pass summary { cursor: pointer; color: var(--muted); }
+.verify-pass ul { margin-top: 6px; }
+
+/* Sample loans and randomizer */
+.samples { display: grid; gap: 12px; margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.samples label span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.samples select, .samples input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; background: #fbfcfd; min-width: 0; }
+.random { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+
+/* Randomize: the form fades in with a soft highlight so it is clear the data changed */
+.shuffle fieldset { animation: form-refresh .45s ease-out both; }
+@keyframes form-refresh {
+  0% { opacity: .35; background: #eaf1f8; }
+  100% { opacity: 1; background: var(--surface); }
 /* Viewing / Editing switch */
 .mode-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .mode-switch { display: inline-flex; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
@@ -194,7 +224,24 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 @media print {
   .src { background: none !important; border: 0 !important; padding: 0 !important; }
 }
+@media (prefers-reduced-motion: reduce) { .shuffle fieldset { animation: none; } }
 
+/* Re-check: a small spinner, and the old results dim while it works */
+.recheck { display: inline-flex; align-items: center; gap: 8px; min-width: 150px; justify-content: center; }
+.recheck:disabled { cursor: progress; opacity: .85; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.verify-time { margin: 4px 0 0; }
+.verify.checking .verify-group, .verify.checking .verify-pass { opacity: .4; transition: opacity .2s; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Notice shown when the memo was edited by hand */
+.verify-sync { background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 8px 0 4px; font-size: 14px; }
+.verify-sync ol { margin: 6px 0 6px 18px; padding: 0; }
+.verify-sync .btn { margin-top: 8px; display: block; }
+.verify .verify-sync ol { list-style: decimal; display: block; }
+.verify .verify-sync li { display: list-item; }
+.chaotic-note { margin: 0 0 10px; }
 /* Scan documents with AI */
 .scan { flex-basis: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px; display: grid; gap: 10px; }
 .scan-head { display: flex; justify-content: space-between; align-items: center; }

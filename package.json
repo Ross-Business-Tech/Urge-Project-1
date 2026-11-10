@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "stress": "node tests/stress.mjs",
     "smoke": "node scripts/smoke-test.cjs",
     "publish:preview": "node scripts/herenow-publish.mjs preview"
   },
