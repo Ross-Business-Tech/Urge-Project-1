@@ -45,6 +45,20 @@ function download(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Line icons for the Viewing / Editing switch, drawn in the page's colors (they follow the text color)
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+    <path d="M14.5 7.5l3 3" />
+  </svg>
+);
+
 const slug = (s) => (s || 'deal').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
 
 export default function App() {
@@ -62,6 +76,7 @@ export default function App() {
   const [checking, setChecking] = useState(false);
   const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
   const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
+  const [compact, setCompact] = useState(false); // scrolled down: the mode switch shrinks to just its icons
   const [spin, setSpin] = useState(0); // changes whenever a new deal loads so the form visibly refills
 
   useEffect(() => {
@@ -174,6 +189,20 @@ export default function App() {
       }
     }, 50);
   };
+
+  // Keep the mode switch pinned just under the page header, and shrink it to icons once you scroll down
+  useEffect(() => {
+    const header = document.querySelector('.top');
+    const setOffset = () => document.documentElement.style.setProperty('--top-h', `${header ? header.offsetHeight : 58}px`);
+    const onScroll = () => setCompact(window.scrollY > 60);
+    setOffset();
+    onScroll();
+    const ro = typeof ResizeObserver !== 'undefined' && header ? new ResizeObserver(setOffset) : null;
+    ro?.observe(header);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', setOffset);
+    return () => { ro?.disconnect(); window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', setOffset); };
+  }, []);
 
   // --- Verification: always check the memo as it reads right now (including hand edits)
   const check = () => verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined);
@@ -299,17 +328,21 @@ export default function App() {
       <main hidden={tab !== 'memo'}>
         {generated ? (
           <>
-            <div className="mode-bar no-print">
+            <div className={`mode-bar no-print${compact ? ' compact' : ''}`}>
               <div className="mode-switch" role="group" aria-label="Memo mode">
-                <button type="button" aria-pressed={mode === 'view'} className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}>👁 Viewing</button>
-                <button type="button" aria-pressed={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => { setMode('edit'); setCard(null); }}>✏️ Editing</button>
+                <button type="button" aria-pressed={mode === 'view'} aria-label="Viewing mode" title="Viewing: tap numbers to see their source" className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}>
+                  <EyeIcon /><span className="lbl">Viewing</span>
+                </button>
+                <button type="button" aria-pressed={mode === 'edit'} aria-label="Editing mode" title="Editing: type in the memo" className={mode === 'edit' ? 'on' : ''} onClick={() => { setMode('edit'); setCard(null); }}>
+                  <PencilIcon /><span className="lbl">Editing</span>
+                </button>
               </div>
-              <span className="small">
-                {mode === 'view'
-                  ? 'Tap any highlighted number to see where it came from.'
-                  : 'Click any text in the memo to change it. Switch back to Viewing to check sources.'}
-              </span>
             </div>
+            <p className="small mode-hint no-print">
+              {mode === 'view'
+                ? 'Tap any highlighted number to see where it came from.'
+                : 'Click any text in the memo to change it. Switch back to Viewing to check sources.'}
+            </p>
             <div className="memo-bar no-print">
               <div className="flag-summary">
                 <span className="badge badge-red">{counts.red} red</span>
