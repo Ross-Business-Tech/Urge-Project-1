@@ -154,7 +154,7 @@ export async function extractDeal(docs) {
   if (res.status === 404 || res.status === 405)
     throw new Error('AI document reading isn’t available on this link. It works on the team’s dev site and public site once your instructor adds the AI key.');
   if (res.status === 401 || res.status === 403)
-    throw new Error('AI document reading isn’t switched on yet: your instructor needs to add the OPENROUTER_API_KEY variable in here.now.');
+    throw new Error('AI document reading isn’t switched on yet: the OPENROUTER_API_KEY variable needs to be added (in here.now, or in Vercel’s Environment Variables).');
   if (res.status === 413) throw new Error('Too much to send at once. Remove some files (or big scans) and try again.');
   if (res.status === 429) throw new Error('Too many AI requests in the last hour. Try again later.');
   if (!res.ok) throw new Error(`The AI request failed (error ${res.status}). Try again in a minute.`);
