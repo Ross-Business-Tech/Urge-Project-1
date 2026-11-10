@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import DealForm from './components/DealForm.jsx';
 import Memo from './components/Memo.jsx';
 import SourceCard from './components/SourceCard.jsx';
+import DocScan from './components/DocScan.jsx';
 import { explain } from './lib/sources.js';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
@@ -68,6 +69,18 @@ export default function App() {
     const changed = Object.keys(next).filter((k) => next[k] !== deal[k]);
     if (changed.length) setOrigins((o) => ({ ...o, typed: { ...o.typed, ...Object.fromEntries(changed.map((k) => [k, true])) } }));
     setDeal(next);
+  };
+
+  // Values the AI read from uploaded documents: fill them in and remember the file + quote.
+  const applyScan = (updates, evidence) => {
+    setDeal((d) => ({ ...d, ...updates }));
+    setOrigins((o) => {
+      const typed = { ...o.typed };
+      Object.keys(updates).forEach((k) => delete typed[k]);
+      return { ...o, typed, docs: { ...o.docs, ...evidence } };
+    });
+    const n = Object.keys(updates).length;
+    flash(`Filled in ${n} field${n === 1 ? '' : 's'} from your documents. Review them below, then write the memo.`);
   };
 
   const flash = (text, kind = 'ok') => {
@@ -178,9 +191,10 @@ export default function App() {
       <main hidden={tab !== 'data'} className="no-print">
         <section className="intro">
           <h1>Turn the underwriting model into a first-draft memo</h1>
-          <p>Upload the deal spreadsheet or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
+          <p>Scan the borrower’s documents with AI, upload the deal spreadsheet, or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
           <div className="actions">
-            <button className="btn" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
+            <DocScan deal={deal} onApply={applyScan} />
+            <button className="btn ghost" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
             <button className="btn ghost" onClick={() => { loadDeal(structuredClone(sampleDeal), { kind: 'sample' }); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
             <button className="btn ghost" onClick={() => download(`deal-data-${slug(deal.firmName || 'template')}.csv`, dealToCsv(deal.firmName ? deal : sampleDeal), 'text/csv')}>
               {deal.firmName ? 'Save data as spreadsheet' : 'Download blank template'}

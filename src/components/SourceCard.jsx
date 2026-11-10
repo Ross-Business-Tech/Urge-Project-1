@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-const ICON = { typed: '⌨️', file: '📄', sample: '🧪', calc: '🧮', news: '📰' };
+const ICON = { typed: '⌨️', file: '📄', sample: '🧪', calc: '🧮', news: '📰', doc: '📑' };
 
 // The little card that opens when you tap a number in Viewing mode.
 export default function SourceCard({ info, shown, edited, original, anchor, onClose, onGoTo }) {
