@@ -1,26 +1,51 @@
 :root {
-  --bg: #f4f2ee;
+  /* Surfaces and text */
+  --bg: #f5f5f7;
   --surface: #ffffff;
-  --ink: #18212b;
-  --muted: #5b6672;
-  --line: #dfe3e8;
-  --brand: #1d3b5c;
+  --surface-2: #f5f5f7;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --faint: #86868b;
+  --line: rgba(0, 0, 0, .08);
+  --line-strong: rgba(0, 0, 0, .14);
+
+  /* One accent colour, used for actions and links */
+  --brand: #0071e3;
+  --brand-hover: #0077ed;
   --brand-ink: #ffffff;
-  --accent: #c8792b;
-  --soft: #eef3f8;
-  --red: #b42318; --red-bg: #fde8e6;
-  --yellow: #8a5300; --yellow-bg: #fff1cc;
-  --green: #1b6e38; --green-bg: #e2f4e8;
-  --bar-a: #1d3b5c; --bar-b: #4f9d8a; --bar-c: #c8792b; --bar-d: #8a96a3; --bar-e: #7a5ea8; --bar-f: #b9c7d6;
-  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --serif: Georgia, 'Times New Roman', serif;
+  --brand-tint: rgba(0, 113, 227, .08);
+  --accent: #bf4800;
+  --soft: #f5f5f7;
+  --focus: 0 0 0 4px rgba(0, 113, 227, .22);
+
+  /* Ratings keep their meaning */
+  --red: #d70015; --red-bg: #fff0f1;
+  --yellow: #a05a00; --yellow-bg: #fff6e0; --yellow-line: #ff9f0a;
+  --green: #1a7f37; --green-bg: #ebf8ee;
+
+  /* Chart palette */
+  --bar-a: #0071e3; --bar-b: #30b0c7; --bar-c: #ff9f0a; --bar-d: #8e8e93; --bar-e: #5e5ce6; --bar-f: #d2d2d7;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 24px rgba(0, 0, 0, .04);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, .12);
+
+  --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Helvetica Neue', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+
   color-scheme: light;
-  font: 16px/1.5 var(--sans);
+  font: 17px/1.47 var(--sans);
+  letter-spacing: -.01em;
   color: var(--ink);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); }
-button, input, select, textarea { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+a { color: var(--brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+::selection { background: rgba(0, 113, 227, .2); }
 [hidden] { display: none !important; }

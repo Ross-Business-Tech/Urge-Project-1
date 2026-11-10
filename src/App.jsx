@@ -231,8 +231,8 @@ export default function App() {
           </div>
         </div>
         <nav className="tabs" role="tablist">
-          <button role="tab" aria-selected={tab === 'data'} className={tab === 'data' ? 'on' : ''} onClick={() => setTab('data')}>1. Deal data</button>
-          <button role="tab" aria-selected={tab === 'memo'} className={tab === 'memo' ? 'on' : ''} onClick={() => (generated ? setTab('memo') : generate())}>2. Memo draft</button>
+          <button role="tab" aria-selected={tab === 'data'} className={tab === 'data' ? 'on' : ''} onClick={() => setTab('data')}>Deal data</button>
+          <button role="tab" aria-selected={tab === 'memo'} className={tab === 'memo' ? 'on' : ''} onClick={() => (generated ? setTab('memo') : generate())}>Memo draft</button>
         </nav>
       </header>
 
@@ -240,7 +240,7 @@ export default function App() {
 
       <main hidden={tab !== 'data'} className="no-print">
         <section className="intro">
-          <h1>Turn the underwriting model into a first-draft memo</h1>
+          <h1>From underwriting model to first‑draft memo.</h1>
           <p>Scan the borrower’s documents with AI, upload the deal spreadsheet, or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
           <div className="actions">
             <DocScan deal={deal} onApply={applyScan} />
@@ -301,8 +301,8 @@ export default function App() {
           <>
             <div className="mode-bar no-print">
               <div className="mode-switch" role="group" aria-label="Memo mode">
-                <button type="button" aria-pressed={mode === 'view'} className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}>👁 Viewing</button>
-                <button type="button" aria-pressed={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => { setMode('edit'); setCard(null); }}>✏️ Editing</button>
+                <button type="button" aria-pressed={mode === 'view'} className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>Viewing</button>
+                <button type="button" aria-pressed={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => { setMode('edit'); setCard(null); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>Editing</button>
               </div>
               <span className="small">
                 {mode === 'view'

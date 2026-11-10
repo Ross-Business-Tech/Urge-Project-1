@@ -119,7 +119,7 @@ export default function DocScan({ deal, onApply }) {
 
   if (!open) {
     return (
-      <button className="btn" onClick={() => setOpen(true)}>✨ Scan documents with AI</button>
+      <button className="btn" onClick={() => setOpen(true)}>Scan documents with AI</button>
     );
   }
 
