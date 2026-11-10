@@ -137,6 +137,7 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
   .memo th, .memo td { padding: 6px 4px; }
   .memo .opt { display: none; }
   .memo table { word-break: break-word; }
+  .memo table.merits td:first-child { min-width: 88px; word-break: normal; hyphens: auto; }
   .memo-bar .actions .btn { flex: 1 1 auto; }
   .chart-label { font-size: 15px; }
   .chart-value { font-size: 14px; }
