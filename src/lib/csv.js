@@ -1,7 +1,7 @@
 import { emptyDeal } from './sampleDeal.js';
 
 // Spreadsheet layout: one row per field. Table rows repeat the table name.
-//   field,value,value2,value3,value4
+//   field,value,value2,value3,value4,value5,value6,value7,value8
 //   loanAmount,750000
 //   projectSources,Senior construction loan,4420000
 export const TABLES = {
@@ -11,11 +11,12 @@ export const TABLES = {
   financials: ['year', 'type', 'revenue', 'netIncome'],
   repaymentOptions: ['option'],
   team: ['name', 'company', 'role', 'bio'],
+  news: ['about', 'level', 'headline', 'source', 'date', 'url', 'summary', 'relevance'],
 };
 
 function parseCsv(text) {
   const rows = [];
-  let row = [], cell = '', q = false;
+  let row = [], cell = '', q = false, line = 1;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (q) {
@@ -26,14 +27,16 @@ function parseCsv(text) {
     else if (c === ',') { row.push(cell); cell = ''; }
     else if (c === '\n' || c === '\r') {
       if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell); rows.push(row); row = []; cell = '';
+      row.push(cell); row.line = line; rows.push(row); row = []; cell = ''; line++;
     } else cell += c;
   }
-  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  if (cell !== '' || row.length) { row.push(cell); row.line = line; rows.push(row); }
   return rows.filter((r) => r.some((c) => c.trim() !== ''));
 }
 
-export function dealFromCsv(text) {
+// `lines` (optional) is filled with the spreadsheet row each value came from,
+// e.g. { loanAmount: 14, 'projectSources.2': 22 }, so the memo can show its source.
+export function dealFromCsv(text, lines = {}) {
   const deal = structuredClone(emptyDeal);
   Object.keys(TABLES).forEach((t) => (deal[t] = []));
   let known = 0;
@@ -43,10 +46,12 @@ export function dealFromCsv(text) {
     if (TABLES[key]) {
       const obj = {};
       TABLES[key].forEach((col, i) => (obj[col] = (r[i + 1] ?? '').trim()));
+      lines[`${key}.${deal[key].length}`] = r.line;
       deal[key].push(obj);
       known++;
     } else if (key in emptyDeal) {
       deal[key] = (r[1] ?? '').trim();
+      lines[key] = r.line;
       known++;
     }
   }
@@ -60,7 +65,7 @@ const esc = (v) => {
 };
 
 export function dealToCsv(deal) {
-  const lines = ['field,value,value2,value3,value4'];
+  const lines = ['field,value,value2,value3,value4,value5,value6,value7,value8'];
   for (const key of Object.keys(emptyDeal)) {
     if (TABLES[key]) {
       for (const row of deal[key] || []) lines.push([key, ...TABLES[key].map((c) => row[c])].map(esc).join(','));

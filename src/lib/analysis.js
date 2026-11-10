@@ -175,6 +175,13 @@ export function analyze(deal) {
   ];
   const overall = worst(merits.map((m) => m.level));
 
+  // --- News found by the news check
+  for (const n of deal.news || []) {
+    if (!n.headline || n.level === 'green' || /^\(?No warning words/.test(n.relevance || '')) continue;
+    add(`News (${n.about || 'Borrower'})`, n.level === 'red' ? 'red' : 'yellow', n.headline,
+      [n.summary, n.relevance, [n.source, n.date].filter(Boolean).join(', ')].filter(Boolean).join(' '));
+  }
+
   flags.sort((a, b) => LEVEL_RANK[b.level] - LEVEL_RANK[a.level]);
 
   return {

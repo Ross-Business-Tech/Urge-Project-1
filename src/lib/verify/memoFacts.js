@@ -73,10 +73,12 @@ export function factsFromList(rows, text) {
 }
 export const readFactsFromDom = (root) =>
   factsFromList([...root.querySelectorAll('[data-fact]')].map((el) => ({ fact: el.dataset.fact, text: el.textContent })), root.innerText);
+// Plain text of rendered HTML the way a browser shows it: inline tags add no space, block tags do
+export const htmlToText = (html) => html.replace(/<\/?(?:span|strong|em|b|i|a|u|mark|small)\b[^>]*>/g, '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' ');
 export function readFactsFromHtml(html) {
   const rows = [];
   for (const m of html.matchAll(/<(\w+)[^>]*\sdata-fact="(\w+)"[^>]*>(.*?)<\/\1>/g)) rows.push({ fact: m[2], text: m[3].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#x27;/g, "'") });
-  return factsFromList(rows, html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'"));
+  return factsFromList(rows, htmlToText(html));
 }
 
 // The deal as the memo now reads, plus what changed (diffs) and what disagrees with itself (conflicts)

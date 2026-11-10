@@ -6,7 +6,7 @@ import { verifyAll } from '../src/lib/verify/index.js';
 import { rateIndependent, checkRatings, RANK } from '../src/lib/verify/ratings.js';
 import { checkMemoText } from '../src/lib/verify/memoText.js';
 import { randomDeal, MISTAKES, MAX_MISTAKES, CHAOS } from '../src/lib/randomDeal.js';
-import { readFactsFromHtml, applyFacts } from '../src/lib/verify/memoFacts.js';
+import { readFactsFromHtml, applyFacts, htmlToText } from '../src/lib/verify/memoFacts.js';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
@@ -15,7 +15,7 @@ import { createServer } from 'vite';
 const vite = await createServer({ root: new URL('..', import.meta.url).pathname, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 const Memo = (await vite.ssrLoadModule('/src/components/Memo.jsx')).default;
 const memoHtml = (deal) => renderToStaticMarkup(React.createElement(Memo, { deal }));
-const memoText = (deal) => renderToStaticMarkup(React.createElement(Memo, { deal })).replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ');
+const memoText = (deal) => htmlToText(renderToStaticMarkup(React.createElement(Memo, { deal })));
 
 const results = [];
 let group = '';
@@ -75,7 +75,7 @@ test('real memo + one hand-edit ($750,000 -> $570,000) is caught', () => checkMe
 section('3b. Hand-fixing the memo and re-checking (the report must follow the memo)');
 const bad = mut({ loanAmount: '800000' }); // loan uses add to $750,000, so loan != uses
 const html0 = memoHtml(bad);
-const recheck = (html, deal = bad) => verifyAll(deal, html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' '), readFactsFromHtml(html));
+const recheck = (html, deal = bad) => verifyAll(deal, htmlToText(html), readFactsFromHtml(html));
 const editLoan = (html, fn) => { let n = 0; return html.replace(/\$800,000/g, () => fn(n++)); }; // every printed mention of the $800,000 loan
 const editFact = (html, fact, fn) => html.replace(new RegExp(`(<(\\w+)[^>]*\\sdata-fact="${fact}"[^>]*>)(.*?)(</\\2>)`, 'g'), (m, open, tag, inner, close) => open + fn(inner) + close);
 test('the loan amount is found in all 6 places the memo states it', () => readFactsFromHtml(html0).fields.loanAmount.length === 6 || readFactsFromHtml(html0).fields.loanAmount.length);
@@ -112,7 +112,7 @@ test('rewording one sentence is reported as "found in only 5 of 6 places"', () =
 test('negative cash shown in the memo can be corrected by typing in the memo', () => {
   const d = mut({ cash: '-5000' });
   const h = memoHtml(d);
-  if (!/Cash on hand of \$-5,000\./.test(h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '))) return 'negative cash is not shown in the memo';
+  if (!/Cash on hand of \$-5,000\./.test(htmlToText(h))) return 'negative cash is not shown in the memo';
   const before = recheck(h, d).items.some((i) => /Negative amount/.test(i.title) && i.level === 'fail');
   const after = recheck(h.replace('$-5,000', '$150,000'), d).items.some((i) => /Negative amount/.test(i.title) && i.level === 'fail');
   return (before && !after) || `before ${before}, after ${after}`;
@@ -146,7 +146,7 @@ for (const [type, m] of Object.entries(MISTAKES)) {
       if (!before.some((it) => it.level === m.level && m.re.test(it.title))) return `seed #${990000 + 20000 + i}: not flagged to begin with`;
       shown++;
       // the underwriter corrects the memo: it now reads like the correct deal, while the form still holds the mistake
-      const after = verifyAll(mistaken, htmlGood.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' '), readFactsFromHtml(htmlGood)).items;
+      const after = verifyAll(mistaken, htmlToText(htmlGood), readFactsFromHtml(htmlGood)).items;
       if (after.some((it) => it.level !== 'pass' && it.area !== 'Memo vs form' && m.re.test(it.title))) stuck.push(`#${990000 + 20000 + i}`);
     }
     return stuck.length === 0 || `still flagged after fixing the memo in ${stuck.length}/${shown} deals, e.g. ${stuck.slice(0, 3).join(', ')}`;
@@ -169,7 +169,7 @@ test(`...and fixing the memo clears all ${MAX_MISTAKES} at once`, () => {
     const bad = gen0(i + 40000, { profile: 'any', mistakes: MAX_MISTAKES });
     // same seed => same underlying deal; the memo of the correct deal is the "fixed" memo
     const hg = memoHtml(good);
-    const after = verifyAll(bad.deal, hg.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' '), readFactsFromHtml(hg)).items;
+    const after = verifyAll(bad.deal, htmlToText(hg), readFactsFromHtml(hg)).items;
     for (const p of bad.planted) if (after.some((it) => it.level !== 'pass' && it.area !== 'Memo vs form' && p.re.test(it.title))) stuck.push(`#${bad.seed} ${p.type}`);
   }
   return stuck.length === 0 || `${stuck.length} still flagged, e.g. ${stuck.slice(0, 4).join(', ')}`;
@@ -183,7 +183,7 @@ for (const type of ['junk-rate', 'junk-years', 'absurd-loan']) {
       const f0 = verifyAll(messy, memoText(messy), readFactsFromHtml(memoHtml(messy))).items;
       if (!f0.some((it) => it.level === CHAOS[type].level && CHAOS[type].re.test(it.title))) return `seed #${990000 + 60000 + i}: not flagged to begin with`;
       const hg = memoHtml(good);
-      const after = verifyAll(messy, hg.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' '), readFactsFromHtml(hg)).items;
+      const after = verifyAll(messy, htmlToText(hg), readFactsFromHtml(hg)).items;
       if (after.some((it) => it.level !== 'pass' && it.area !== 'Memo vs form' && CHAOS[type].re.test(it.title))) return `seed #${990000 + 60000 + i}: still flagged after fixing the memo`;
     }
     return true;
@@ -191,9 +191,9 @@ for (const type of ['junk-rate', 'junk-years', 'absurd-loan']) {
 }
 test('fixing ONE of several mentions of the rate leaves a "differs across the memo" failure', () => {
   const d = gen0(31, { profile: 'any' }).deal; const h = memoHtml(d);
-  const r = String(Number(d.interestRate));
-  const edited = h.replace(new RegExp('at <strong>' + r.replace('.', '\\.') + '%</strong>'), 'at <strong>' + (Number(r) + 1) + '%</strong>');
-  const v = verifyAll(d, edited.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '), readFactsFromHtml(edited));
+  const edited = h.replace(/(\d[\d.]*)(%(?:<\/[^>]+>)*\s+interest)/, (m, n, rest) => (Number(n) + 1) + rest);
+  if (edited === h) return 'could not edit the rate in the memo html';
+  const v = verifyAll(d, htmlToText(edited), readFactsFromHtml(edited));
   return v.items.some((i) => i.level === 'fail' && /Interest rate differs across the memo/.test(i.title)) || JSON.stringify(v.items.filter((i) => i.level !== 'pass').map((i) => i.title));
 });
 

@@ -52,7 +52,7 @@ export function checkAtypical(deal) {
 
   // --- Blanks (beyond the required fields, which are reported separately)
   const required = ['firmName', 'principalName', 'loanAmount', 'interestRate', 'termMonths', 'loanPurpose', 'projectName', 'totalProjectCost', 'exitProceeds'];
-  const skip = new Set(['fundName', 'underwriterNotes', 'repaymentStructure', 'growthPlan']);
+  const skip = new Set(['fundName', 'underwriterNotes', 'repaymentStructure', 'growthPlan', 'news', 'newsSummary', 'newsCheckedAt']);
   const keys = Object.keys(emptyDeal).filter((k) => !skip.has(k));
   const blank = keys.filter((k) => isBlank(deal[k]));
   const optionalBlank = blank.filter((k) => !required.includes(k));

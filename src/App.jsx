@@ -1,17 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import DealForm from './components/DealForm.jsx';
 import Memo from './components/Memo.jsx';
+import SourceCard from './components/SourceCard.jsx';
+import DocScan from './components/DocScan.jsx';
+import { explain } from './lib/sources.js';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
-import { sampleLoans } from './lib/sampleLoans.js';
-import { randomDeal, MAX_MISTAKES } from './lib/randomDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
 import { verifyAll } from './lib/verify/index.js';
 import { readFactsFromDom } from './lib/verify/memoFacts.js';
 import VerificationReport from './components/VerificationReport.jsx';
+import { sampleLoans } from './lib/sampleLoans.js';
+import { randomDeal, MAX_MISTAKES } from './lib/randomDeal.js';
 import './App.css';
 
 const STORE = 'memo-drafter-deal-v1';
+const ORIGINS = 'memo-drafter-origins-v1';
+
+// Remembers how the deal got here (typed, sample, or uploaded file + row numbers)
+// so the memo can show where each number came from.
+function loadOrigins() {
+  try {
+    return JSON.parse(localStorage.getItem(ORIGINS)) || { kind: 'typed' };
+  } catch {
+    return { kind: 'typed' };
+  }
+}
 
 function loadSaved() {
   try {
@@ -35,20 +49,67 @@ const slug = (s) => (s || 'deal').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g,
 
 export default function App() {
   const [deal, setDeal] = useState(loadSaved);
+  const [origins, setOrigins] = useState(loadOrigins);
+  const [mode, setMode] = useState('view'); // 'view' = tap numbers for sources, 'edit' = type in the memo
+  const [card, setCard] = useState(null);
+  const closeCard = useCallback(() => setCard(null), []);
   const [tab, setTab] = useState('data');
   const [generated, setGenerated] = useState(null); // { deal, id }
   const [msg, setMsg] = useState(null);
-  const [report, setReport] = useState(null);
-  const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
-  const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
-  const [spin, setSpin] = useState(0); // changes on every randomize/sample load so the form visibly refills
-  const [checking, setChecking] = useState(false);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
+  const [report, setReport] = useState(null); // Verification report for the memo as it reads now
+  const [checking, setChecking] = useState(false);
+  const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
+  const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
+  const [spin, setSpin] = useState(0); // changes whenever a new deal loads so the form visibly refills
 
   useEffect(() => {
     try { localStorage.setItem(STORE, JSON.stringify(deal)); } catch { /* storage unavailable */ }
   }, [deal]);
+  useEffect(() => {
+    try { localStorage.setItem(ORIGINS, JSON.stringify(origins)); } catch { /* storage unavailable */ }
+  }, [origins]);
+
+  // Load a whole new deal and record where it came from.
+  // A new deal means the old memo no longer matches it, so clear it and refresh the form.
+  const loadDeal = (d, o) => { setDeal(d); setOrigins(o); setGenerated(null); setCard(null); setSpin((n) => n + 1); };
+
+  const loadSample = (id) => {
+    const ex = sampleLoans.find((x) => x.id === id);
+    if (!ex) return;
+    loadDeal(structuredClone(ex.deal), { kind: 'sample' });
+    flash(`Loaded sample: ${ex.name}.`);
+  };
+
+  const randomize = (repeat = false) => {
+    // A new random deal every click. A typed seed (or Repeat) is used once to recreate a deal.
+    const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : (crypto.getRandomValues(new Uint32Array(1))[0] % 1000000) + 1;
+    setSeedTyped(false);
+    const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
+    loadDeal(r.deal, { kind: 'sample' });
+    setRand({ ...rand, seed: String(seed) });
+    flash(`Random deal #${seed} (${r.profile}${r.planted.length ? `, ${r.planted.length} planted problem${r.planted.length > 1 ? 's' : ''}: ${r.planted.slice(0, 3).map((p) => p.type).join(', ')}${r.planted.length > 3 ? ` and ${r.planted.length - 3} more` : ''}` : ''}).`);
+  };
+
+  // Edits on the Deal data page: anything changed by hand now counts as "typed".
+  const editDeal = (next) => {
+    const changed = Object.keys(next).filter((k) => next[k] !== deal[k]);
+    if (changed.length) setOrigins((o) => ({ ...o, typed: { ...o.typed, ...Object.fromEntries(changed.map((k) => [k, true])) } }));
+    setDeal(next);
+  };
+
+  // Values the AI read from uploaded documents: fill them in and remember the file + quote.
+  const applyScan = (updates, evidence) => {
+    setDeal((d) => ({ ...d, ...updates }));
+    setOrigins((o) => {
+      const typed = { ...o.typed };
+      Object.keys(updates).forEach((k) => delete typed[k]);
+      return { ...o, typed, docs: { ...o.docs, ...evidence } };
+    });
+    const n = Object.keys(updates).length;
+    flash(`Filled in ${n} field${n === 1 ? '' : 's'} from your documents. Review them below, then write the memo.`);
+  };
 
   const flash = (text, kind = 'ok') => {
     setMsg({ text, kind });
@@ -61,8 +122,9 @@ export default function App() {
     if (!file) return;
     try {
       const text = await file.text();
-      const d = file.name.toLowerCase().endsWith('.json') ? dealFromJson(text) : dealFromCsv(text);
-      setDeal(d);
+      const lines = {};
+      const d = file.name.toLowerCase().endsWith('.json') ? dealFromJson(text) : dealFromCsv(text, lines);
+      loadDeal(d, { kind: 'file', fileName: file.name, lines });
       flash(`Loaded ${file.name}. Review the fields, then write the memo.`);
     } catch (err) {
       flash(`Couldn’t read that file. ${err.message || ''} Use a .csv saved from the template.`, 'err');
@@ -70,50 +132,66 @@ export default function App() {
   };
 
   const generate = () => {
-    setGenerated({ deal: structuredClone(deal), id: Date.now() });
+    setGenerated({ deal: structuredClone(deal), origins: structuredClone(origins), id: Date.now() });
+    setCard(null);
     setTab('memo');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const loadSample = (id) => {
-    const ex = sampleLoans.find((x) => x.id === id);
-    if (!ex) return;
-    setDeal(structuredClone(ex.deal));
-    setGenerated(null); // the old memo no longer matches this deal
-    setSpin((n) => n + 1);
-    flash(`Loaded sample: ${ex.name}.`);
+  // Remember each number's original text, so the card can tell if it was changed by hand.
+  useEffect(() => {
+    memoRef.current?.querySelectorAll('.src').forEach((el) => { el.dataset.orig = el.textContent; });
+  }, [generated?.id]);
+
+  // Viewing mode: tapping a marked number opens its source card.
+  const onPaperClick = (e) => {
+    if (mode !== 'view') return;
+    if (e.target.closest('a')) return; // let article links open normally
+    const el = e.target.closest('[data-src]');
+    if (!el) return;
+    const info = explain(el.dataset.src, generated.deal, generated.origins);
+    if (!info) return;
+    const shown = el.textContent.trim();
+    const original = (el.dataset.orig || '').trim();
+    setCard({ info, shown, original, edited: original && shown !== original, anchor: el.getBoundingClientRect() });
   };
 
-  const randomize = (repeat = false) => {
-    // A new random deal every click. A typed seed is used once (to repeat a deal), then cleared.
-    const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : Math.floor(Math.random() * 1e6) + 1;
-    setSeedTyped(false);
-    setSpin((n) => n + 1);
-    const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
-    setDeal(r.deal);
-    setGenerated(null);
-    setRand({ ...rand, seed: String(seed) });
-    flash(`Random deal #${seed} (${r.profile}${r.planted.length ? `, ${r.planted.length} planted problem${r.planted.length > 1 ? 's' : ''}: ${r.planted.slice(0, 3).map((p) => p.type).join(', ')}${r.planted.length > 3 ? ` and ${r.planted.length - 3} more` : ''}` : ''}).`);
+  // "Go to this in Deal data": open the form and jump to that box.
+  const goToField = (field) => {
+    setCard(null);
+    setTab('data');
+    setTimeout(() => {
+      let el = document.getElementById('f-' + field);
+      if (!el) {
+        const wanted = { urgeUses: 'How the loan will be used', projectSources: 'Project sources (overall financing)', projectUses: 'Project uses', financials: 'Revenue and net income by year', repaymentOptions: 'Ways the fund gets repaid (in priority order)', news: 'News items for the memo', team: 'Team members' }[field];
+        el = [...document.querySelectorAll('.field .label')].find((l) => l.textContent === wanted);
+      }
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.closest('.field')?.classList.add('flash');
+        setTimeout(() => el.closest('.field')?.classList.remove('flash'), 2000);
+        if (el.focus) el.focus({ preventScroll: true });
+      }
+    }, 50);
   };
 
+  // --- Verification: always check the memo as it reads right now (including hand edits)
+  const check = () => verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined);
   const runChecks = () => {
     if (!generated || checking) return;
     setChecking(true);
     // The checks themselves are instant; a short pause makes it visible that they re-ran
     setTimeout(() => {
-      setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined), checkedAt: Date.now() });
+      setReport({ ...check(), checkedAt: Date.now() });
       setChecking(false);
     }, 900);
   };
-
-  // Check the memo as soon as it is written
   useEffect(() => {
     if (generated) setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined), checkedAt: Date.now() });
   }, [generated]);
-
-  // Re-check the written text (including hand edits) before anything leaves the app
+  // Re-check before anything leaves the app
   const guard = (action) => {
-    const r = verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined);
+    const r = check();
     setReport({ ...r, checkedAt: Date.now() });
     if (r.counts.fail && !confirm(`${r.counts.fail} check(s) failed. Review the Verification report first.\n\nShare the memo anyway?`)) return;
     action();
@@ -163,13 +241,15 @@ export default function App() {
       <main hidden={tab !== 'data'} className="no-print">
         <section className="intro">
           <h1>Turn the underwriting model into a first-draft memo</h1>
-          <p>Upload the deal spreadsheet or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
+          <p>Scan the borrower’s documents with AI, upload the deal spreadsheet, or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
           <div className="actions">
-            <button className="btn" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
+            <DocScan deal={deal} onApply={applyScan} />
+            <button className="btn ghost" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
+            <button className="btn ghost" onClick={() => { loadDeal(structuredClone(sampleDeal), { kind: 'sample' }); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
             <button className="btn ghost" onClick={() => download(`deal-data-${slug(deal.firmName || 'template')}.csv`, dealToCsv(deal.firmName ? deal : sampleDeal), 'text/csv')}>
               {deal.firmName ? 'Save data as spreadsheet' : 'Download blank template'}
             </button>
-            <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) setDeal(structuredClone(emptyDeal)); }}>Clear</button>
+            <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) loadDeal(structuredClone(emptyDeal), { kind: 'typed' }); }}>Clear</button>
             <input ref={fileRef} type="file" accept=".csv,.json,text/csv,application/json" hidden onChange={onUpload} />
           </div>
           <div className="samples">
@@ -208,7 +288,7 @@ export default function App() {
         </section>
 
         <div key={spin} className={spin ? 'shuffle' : ''}>
-          <DealForm deal={deal} set={setDeal} />
+          <DealForm deal={deal} set={editDeal} />
         </div>
 
         <div className="sticky-cta">
@@ -219,11 +299,21 @@ export default function App() {
       <main hidden={tab !== 'memo'}>
         {generated ? (
           <>
+            <div className="mode-bar no-print">
+              <div className="mode-switch" role="group" aria-label="Memo mode">
+                <button type="button" aria-pressed={mode === 'view'} className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}>👁 Viewing</button>
+                <button type="button" aria-pressed={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => { setMode('edit'); setCard(null); }}>✏️ Editing</button>
+              </div>
+              <span className="small">
+                {mode === 'view'
+                  ? 'Tap any highlighted number to see where it came from.'
+                  : 'Click any text in the memo to change it. Switch back to Viewing to check sources.'}
+              </span>
+            </div>
             <div className="memo-bar no-print">
               <div className="flag-summary">
                 <span className="badge badge-red">{counts.red} red</span>
                 <span className="badge badge-yellow">{counts.yellow} yellow</span>
-                <span className="small">Click any text in the memo to edit it.</span>
               </div>
               <div className="actions">
                 <button className="btn" onClick={() => guard(downloadWord)}>Download for Word</button>
@@ -233,9 +323,20 @@ export default function App() {
               </div>
             </div>
             {report && <VerificationReport report={report} onRecheck={runChecks} checking={checking} onEditData={() => setTab('data')} />}
-            <div className="paper" ref={memoRef} contentEditable suppressContentEditableWarning spellCheck key={generated.id}>
+            <div
+              className={`paper ${mode === 'view' ? 'viewing' : 'editing'}`}
+              ref={memoRef}
+              contentEditable={mode === 'edit'}
+              suppressContentEditableWarning
+              spellCheck={mode === 'edit'}
+              key={generated.id}
+              onClick={onPaperClick}
+            >
               <Memo deal={generated.deal} />
             </div>
+            {card && mode === 'view' && (
+              <SourceCard {...card} onClose={closeCard} onGoTo={goToField} />
+            )}
           </>
         ) : null}
       </main>
