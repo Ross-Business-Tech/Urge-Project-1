@@ -7,6 +7,11 @@ import { explain } from './lib/sources.js';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
 import { analyze } from './lib/analysis.js';
+import { verifyAll } from './lib/verify/index.js';
+import { readFactsFromDom } from './lib/verify/memoFacts.js';
+import VerificationReport from './components/VerificationReport.jsx';
+import { sampleLoans } from './lib/sampleLoans.js';
+import { randomDeal, MAX_MISTAKES } from './lib/randomDeal.js';
 import './App.css';
 
 const STORE = 'memo-drafter-deal-v1';
@@ -53,6 +58,11 @@ export default function App() {
   const [msg, setMsg] = useState(null);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
+  const [report, setReport] = useState(null); // Verification report for the memo as it reads now
+  const [checking, setChecking] = useState(false);
+  const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
+  const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
+  const [spin, setSpin] = useState(0); // changes whenever a new deal loads so the form visibly refills
 
   useEffect(() => {
     try { localStorage.setItem(STORE, JSON.stringify(deal)); } catch { /* storage unavailable */ }
@@ -62,7 +72,25 @@ export default function App() {
   }, [origins]);
 
   // Load a whole new deal and record where it came from.
-  const loadDeal = (d, o) => { setDeal(d); setOrigins(o); };
+  // A new deal means the old memo no longer matches it, so clear it and refresh the form.
+  const loadDeal = (d, o) => { setDeal(d); setOrigins(o); setGenerated(null); setCard(null); setSpin((n) => n + 1); };
+
+  const loadSample = (id) => {
+    const ex = sampleLoans.find((x) => x.id === id);
+    if (!ex) return;
+    loadDeal(structuredClone(ex.deal), { kind: 'sample' });
+    flash(`Loaded sample: ${ex.name}.`);
+  };
+
+  const randomize = (repeat = false) => {
+    // A new random deal every click. A typed seed (or Repeat) is used once to recreate a deal.
+    const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : (crypto.getRandomValues(new Uint32Array(1))[0] % 1000000) + 1;
+    setSeedTyped(false);
+    const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
+    loadDeal(r.deal, { kind: 'sample' });
+    setRand({ ...rand, seed: String(seed) });
+    flash(`Random deal #${seed} (${r.profile}${r.planted.length ? `, ${r.planted.length} planted problem${r.planted.length > 1 ? 's' : ''}: ${r.planted.slice(0, 3).map((p) => p.type).join(', ')}${r.planted.length > 3 ? ` and ${r.planted.length - 3} more` : ''}` : ''}).`);
+  };
 
   // Edits on the Deal data page: anything changed by hand now counts as "typed".
   const editDeal = (next) => {
@@ -147,6 +175,28 @@ export default function App() {
     }, 50);
   };
 
+  // --- Verification: always check the memo as it reads right now (including hand edits)
+  const check = () => verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined);
+  const runChecks = () => {
+    if (!generated || checking) return;
+    setChecking(true);
+    // The checks themselves are instant; a short pause makes it visible that they re-ran
+    setTimeout(() => {
+      setReport({ ...check(), checkedAt: Date.now() });
+      setChecking(false);
+    }, 900);
+  };
+  useEffect(() => {
+    if (generated) setReport({ ...verifyAll(generated.deal, memoRef.current?.innerText || '', memoRef.current ? readFactsFromDom(memoRef.current) : undefined), checkedAt: Date.now() });
+  }, [generated]);
+  // Re-check before anything leaves the app
+  const guard = (action) => {
+    const r = check();
+    setReport({ ...r, checkedAt: Date.now() });
+    if (r.counts.fail && !confirm(`${r.counts.fail} check(s) failed. Review the Verification report first.\n\nShare the memo anyway?`)) return;
+    action();
+  };
+
   const memoHtml = () => memoRef.current?.innerHTML || '';
 
   const downloadWord = () => {
@@ -202,10 +252,44 @@ export default function App() {
             <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) loadDeal(structuredClone(emptyDeal), { kind: 'typed' }); }}>Clear</button>
             <input ref={fileRef} type="file" accept=".csv,.json,text/csv,application/json" hidden onChange={onUpload} />
           </div>
+          <div className="samples">
+            <label>
+              <span>Sample loans (all made up)</span>
+              <select value="" onChange={(e) => loadSample(e.target.value)} aria-label="Load a sample loan">
+                <option value="">Choose a sample loan…</option>
+                {sampleLoans.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+            </label>
+            <div className="random">
+              <label><span>Randomizer</span>
+                <select value={rand.profile} onChange={(e) => setRand({ ...rand, profile: e.target.value })} aria-label="Random deal type">
+                  <option value="any">Any type</option>
+                  <option value="strong">Strong</option>
+                  <option value="mid">Medium</option>
+                  <option value="weak">Weak</option>
+                  <option value="chaotic">Chaotic</option>
+                </select>
+              </label>
+              <label><span>Planted mistakes</span>
+                <select value={rand.mistakes} onChange={(e) => setRand({ ...rand, mistakes: e.target.value })} aria-label="Number of planted mistakes">
+                  <option value="0">None</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => n < MAX_MISTAKES).map((n) => <option key={n} value={n}>{n}</option>)}
+                  <option value={MAX_MISTAKES}>Maximum ({MAX_MISTAKES})</option>
+                </select>
+              </label>
+              <label><span>Last seed (type one to repeat it)</span>
+                <input inputMode="numeric" placeholder="random" value={rand.seed} onChange={(e) => { setSeedTyped(true); setRand({ ...rand, seed: e.target.value.replace(/\D/g, '') }); }} aria-label="Random seed" />
+              </label>
+              <button className="btn" onClick={() => randomize(false)}>Randomize the whole deal</button>
+              <button className="btn ghost" disabled={!rand.seed} onClick={() => randomize(true)}>Repeat this seed</button>
+            </div>
+          </div>
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>
 
-        <DealForm deal={deal} set={editDeal} />
+        <div key={spin} className={spin ? 'shuffle' : ''}>
+          <DealForm deal={deal} set={editDeal} />
+        </div>
 
         <div className="sticky-cta">
           <button className="btn big" onClick={generate}>Write the memo →</button>
@@ -232,12 +316,13 @@ export default function App() {
                 <span className="badge badge-yellow">{counts.yellow} yellow</span>
               </div>
               <div className="actions">
-                <button className="btn" onClick={downloadWord}>Download for Word</button>
-                <button className="btn ghost" onClick={() => window.print()}>Print / PDF</button>
-                <button className="btn ghost" onClick={copyText}>Copy text</button>
+                <button className="btn" onClick={() => guard(downloadWord)}>Download for Word</button>
+                <button className="btn ghost" onClick={() => guard(() => window.print())}>Print / PDF</button>
+                <button className="btn ghost" onClick={() => guard(copyText)}>Copy text</button>
                 <button className="btn text" onClick={() => setTab('data')}>← Edit data</button>
               </div>
             </div>
+            {report && <VerificationReport report={report} onRecheck={runChecks} checking={checking} onEditData={() => setTab('data')} />}
             <div
               className={`paper ${mode === 'view' ? 'viewing' : 'editing'}`}
               ref={memoRef}

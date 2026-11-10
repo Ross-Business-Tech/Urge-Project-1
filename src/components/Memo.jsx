@@ -28,7 +28,7 @@ function AmountTable({ name, rows, total, totalLabel = 'Total', base }) {
       </thead>
       <tbody>
         {rows.map((r, i) => (
-          <tr key={i}><td>{r.label}</td><td className="num"><Src r={`${name}.${i}.amount`}>{money(r.amount)}</Src></td><td className="num"><Src c={`rowShare:${name}:${i}`}>{pct(num(r.amount) / (base || total || 1), 0)}</Src></td></tr>
+          <tr key={i}><td>{r.label}</td><td className="num" data-fact={{ urgeUses: 'loanUse', projectSources: 'source', projectUses: 'use' }[name]}><Src r={`${name}.${i}.amount`}>{money(r.amount)}</Src></td><td className="num"><Src c={`rowShare:${name}:${i}`}>{pct(num(r.amount) / (base || total || 1), 0)}</Src></td></tr>
         ))}
       </tbody>
       <tfoot>
@@ -67,7 +67,7 @@ function MemoDoc({ deal }) {
           <div><dt>To</dt><dd>{v(deal.committee, 'Investment committee')}</dd></div>
           <div><dt>From</dt><dd>{v(deal.preparedBy, 'Underwriter')}</dd></div>
           <div><dt>Date</dt><dd>{fmtDate(deal.memoDate)}</dd></div>
-          <div><dt>Overall rating</dt><dd><Badge level={a.overall} /></dd></div>
+          <div><dt>Overall rating</dt><dd data-fact="overall"><Badge level={a.overall} /></dd></div>
         </dl>
       </header>
 
@@ -229,7 +229,7 @@ function MemoDoc({ deal }) {
                   const fi = deal.financials.indexOf(r);
                   return (
                     <tr key={i} className={String(r.type).startsWith('P') ? 'projected' : ''}>
-                      <td>{r.year}</td><td>{r.type}</td><td className="num"><Src r={`financials.${fi}.revenue`}>{money(r.revenue)}</Src></td><td className="num"><Src r={`financials.${fi}.netIncome`}>{money(r.netIncome)}</Src></td>
+                      <td data-fact="finYear">{r.year}</td><td data-fact="finType">{r.type}</td><td className="num" data-fact="finRev"><Src r={`financials.${fi}.revenue`}>{money(r.revenue)}</Src></td><td className="num" data-fact="finNet"><Src r={`financials.${fi}.netIncome`}>{money(r.netIncome)}</Src></td>
                       <td className="num opt">{num(r.revenue) ? <Src c={`margin:${r.year}`}>{pct(num(r.netIncome) / num(r.revenue))}</Src> : '–'}</td>
                       <td className="num opt">{g ? <Src c={`growth:${r.year}`}>{pct(g.g, 0)}</Src> : '–'}</td>
                     </tr>
@@ -244,7 +244,7 @@ function MemoDoc({ deal }) {
               {a.avgActualGrowth !== null && <li>Historical revenue growth has averaged <Src c="avgActualGrowth">{pct(a.avgActualGrowth, 0)}</Src> per year.</li>}
               {firstProj && lastProj && lastActual && <li>The borrower projects revenue rising to <Src r={`financials.${deal.financials.indexOf(lastProj)}.revenue`}>{money(lastProj.revenue)}</Src> by {lastProj.year}, <Src c="projectedRise">{pct(num(lastProj.revenue) / num(lastActual.revenue) - 1, 0)}</Src> above {lastActual.year}.</li>}
               {has(deal.ownerSharePct) && <li>{principal} owns <Src r="ownerSharePct">{num(deal.ownerSharePct)}%</Src> of {firm}{lastProj ? <>, implying a <Src c="ownerShareIncome">{money((num(lastProj.netIncome) * num(deal.ownerSharePct)) / 100)}</Src> share of projected {lastProj.year} net income</> : ''}.</li>}
-              {a.cash > 0 && <li>Cash on hand of <Src r="cash">{money(a.cash)}</Src>.</li>}
+              {has(deal.cash) && <li>Cash on hand of <Src r="cash">{money(a.cash)}</Src>.</li>}
             </ul>
           </>
         ) : <p><Missing what="Firm financials" /></p>}
@@ -259,7 +259,7 @@ function MemoDoc({ deal }) {
         </p>
         <h3>Repayment options, in priority order</h3>
         {deal.repaymentOptions?.length ? (
-          <ol>{deal.repaymentOptions.map((r, i) => <li key={i}>{r.option}</li>)}</ol>
+          <ol>{deal.repaymentOptions.map((r, i) => <li key={i} data-fact="repay">{r.option}</li>)}</ol>
         ) : <p><Missing what="Repayment options" /></p>}
         {a.loan > 0 && (
           <BarCompare
