@@ -4,6 +4,7 @@ import { extractDeal } from '../lib/docExtract.js';
 import { FIELDS } from '../lib/sources.js';
 import { TABLES } from '../lib/csv.js';
 import { money } from '../lib/format.js';
+import { SparkIcon } from './icons.jsx';
 
 const MONEY = new Set(['loanAmount', 'totalProjectCost', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash', 'exitProceeds']);
 const PCT = new Set(['interestRate', 'originationFee', 'ownerSharePct']);
@@ -119,7 +120,17 @@ export default function DocScan({ deal, onApply }) {
 
   if (!open) {
     return (
-      <button className="btn" onClick={() => setOpen(true)}>✨ Scan documents with AI</button>
+      <div className="add-card add-ai">
+        <div className="add-head">
+          <h3>Scan documents with AI</h3>
+          <span className="add-tag">PDF, Word, Excel, photos</span>
+        </div>
+        <div className="dd dd-ai" role="button" tabIndex={0} aria-label="Scan documents with AI" onClick={() => setOpen(true)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setOpen(true))}>
+          <span className="dd-icon"><SparkIcon /></span>
+          <strong className="dd-title">Let AI read the borrower’s files</strong>
+          <span className="dd-sub">Loan application, term sheet, budget, financials. It suggests values for the form, each with a quote you can check.</span>
+        </div>
+      </div>
     );
   }
 

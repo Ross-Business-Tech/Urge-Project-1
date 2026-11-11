@@ -3,6 +3,7 @@ import DealForm from './components/DealForm.jsx';
 import Memo from './components/Memo.jsx';
 import SourceCard from './components/SourceCard.jsx';
 import DocScan from './components/DocScan.jsx';
+import DealDrop from './components/DealDrop.jsx';
 import { explain } from './lib/sources.js';
 import { sampleDeal, emptyDeal } from './lib/sampleDeal.js';
 import { dealFromCsv, dealToCsv, dealFromJson } from './lib/csv.js';
@@ -70,7 +71,6 @@ export default function App() {
   const [tab, setTab] = useState('data');
   const [generated, setGenerated] = useState(null); // { deal, id }
   const [msg, setMsg] = useState(null);
-  const fileRef = useRef(null);
   const memoRef = useRef(null);
   const [report, setReport] = useState(null); // Verification report for the memo as it reads now
   const [checking, setChecking] = useState(false);
@@ -131,10 +131,8 @@ export default function App() {
     setTimeout(() => setMsg(null), 4000);
   };
 
-  const onUpload = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  // Loads a deal spreadsheet (.csv from the template, or .json)
+  const loadDealFile = async (file) => {
     try {
       const text = await file.text();
       const lines = {};
@@ -270,16 +268,20 @@ export default function App() {
       <main hidden={tab !== 'data'} className="no-print">
         <section className="intro">
           <h1>Turn the underwriting model into a first-draft memo</h1>
-          <p>Scan the borrower’s documents with AI, upload the deal spreadsheet, or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
-          <div className="actions">
+          <p>Drop in the deal spreadsheet, let AI read the borrower’s documents, or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
+          <div className="add-grid">
+            <DealDrop
+              onFile={loadDealFile}
+              onReject={(m, kind = 'err') => flash(m, kind)}
+              loadedName={origins.kind === 'file' ? origins.fileName : ''}
+              onTemplate={() => download('deal-data-template.csv', dealToCsv(sampleDeal), 'text/csv')}
+              canSave={!!deal.firmName}
+              onSave={() => download(`deal-data-${slug(deal.firmName)}.csv`, dealToCsv(deal), 'text/csv')}
+            />
             <DocScan deal={deal} onApply={applyScan} />
-            <button className="btn ghost" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
-            <button className="btn ghost" onClick={() => { loadDeal(structuredClone(sampleDeal), { kind: 'sample' }); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
-            <button className="btn ghost" onClick={() => download(`deal-data-${slug(deal.firmName || 'template')}.csv`, dealToCsv(deal.firmName ? deal : sampleDeal), 'text/csv')}>
-              {deal.firmName ? 'Save data as spreadsheet' : 'Download blank template'}
-            </button>
-            <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) loadDeal(structuredClone(emptyDeal), { kind: 'typed' }); }}>Clear</button>
-            <input ref={fileRef} type="file" accept=".csv,.json,text/csv,application/json" hidden onChange={onUpload} />
+          </div>
+          <div className="intro-tools">
+            <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) loadDeal(structuredClone(emptyDeal), { kind: 'typed' }); }}>Clear all fields</button>
           </div>
           <div className="samples">
             <label>
