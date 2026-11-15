@@ -19,15 +19,71 @@ function tooMany(req, limit = 60) {
   return n > limit;
 }
 
-// Which AI service the server's key belongs to. OpenRouter keys start with "sk-or-"; any other
-// key (e.g. an OpenAI / Codex key, "sk-proj-...") is sent to OpenAI directly. The key can be saved
-// as OPENROUTER_API_KEY or OPENAI_API_KEY.
+// Which AI service the server's key belongs to:
+//   sk-or-...  -> OpenRouter
+//   sk-...     -> OpenAI
+//   anything else (e.g. a U-M GPT Toolkit key from toolkit.umgpt.umich.edu) -> the U-M GPT Toolkit
+// The key can be saved as OPENROUTER_API_KEY, OPENAI_API_KEY or AI_API_KEY. Optional settings:
+//   AI_BASE_URL      another OpenAI-compatible address (or a U-M ".../azure-openai-api/openai" address)
+//   AI_ORGANIZATION  sent as OpenAI-Organization (U-M: your 6-digit shortcode, if your key needs it)
+//   AI_MODEL         model to use (otherwise picked from what the service offers)
+//   AI_API_VERSION   for Azure-style addresses only
+const UMICH_BASE = 'https://api.toolkit.umgpt.umich.edu/v1';
 export function aiConfig() {
-  const key = cleanKey(process.env.OPENROUTER_API_KEY) || cleanKey(process.env.OPENAI_API_KEY);
+  const key = cleanKey(process.env.OPENROUTER_API_KEY) || cleanKey(process.env.OPENAI_API_KEY) || cleanKey(process.env.AI_API_KEY);
   if (!key) return { key: '', provider: 'none' };
-  return { key, provider: /^sk-or-/.test(key) ? 'openrouter' : 'openai', model: process.env.OPENAI_MODEL || 'gpt-5-mini' };
+  const provider = /^sk-or-/.test(key) ? 'openrouter' : /^sk-/.test(key) ? 'openai' : 'umich';
+  const base = (process.env.AI_BASE_URL || (provider === 'umich' ? UMICH_BASE : 'https://api.openai.com/v1')).trim().replace(/\/+$/, '');
+  return {
+    key, provider, base,
+    azure: /azure-openai-api|openai\.azure\.com/i.test(base),
+    org: (process.env.AI_ORGANIZATION || '').trim(),
+    model: (process.env.AI_MODEL || process.env.OPENAI_MODEL || '').trim(),
+    apiVersion: (process.env.AI_API_VERSION || '2025-04-01-preview').trim(),
+  };
 }
 const isReasoning = (m) => /^(gpt-5|o\d)/.test(m);
+
+function aiHeaders(cfg) {
+  const h = { 'Content-Type': 'application/json' };
+  if (cfg.azure) h['api-key'] = cfg.key;
+  else h.Authorization = `Bearer ${cfg.key}`;
+  if (cfg.org) h['OpenAI-Organization'] = cfg.org;
+  return h;
+}
+
+// Models the service offers (asked once every 10 minutes). Used to pick a model automatically.
+const PREFERRED = ['gpt-5-mini', 'gpt-5', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini', 'gpt-4o', 'gpt-5-nano', 'gpt-4.1-nano'];
+let modelCache = { at: 0, list: null, error: '' };
+export async function listModels(cfg = aiConfig()) {
+  if (cfg.provider === 'none' || cfg.provider === 'openrouter' || cfg.azure) return { list: null, error: '' };
+  if (modelCache.list && Date.now() - modelCache.at < 600000) return modelCache;
+  try {
+    const r = await fetch(`${cfg.base}/models`, { headers: aiHeaders(cfg) });
+    const text = await r.text();
+    if (!r.ok) { modelCache = { at: Date.now(), list: null, error: `${r.status}: ${text.slice(0, 160)}` }; return modelCache; }
+    const data = JSON.parse(text);
+    const list = (data.data || data.models || []).map((m) => m.id || m.name || m).filter((x) => typeof x === 'string');
+    modelCache = { at: Date.now(), list, error: '' };
+  } catch (e) {
+    modelCache = { at: Date.now(), list: null, error: String(e.message || e).slice(0, 160) };
+  }
+  return modelCache;
+}
+export async function pickModel(cfg = aiConfig()) {
+  if (cfg.model) return cfg.model;
+  if (cfg.azure) return 'gpt-4o';
+  const { list } = await listModels(cfg);
+  if (list?.length) {
+    for (const want of PREFERRED) {
+      const hit = list.find((m) => m === want) || list.find((m) => m.startsWith(want + '-') && !/codex|audio|realtime|transcribe|tts|image|embedding|search/i.test(m));
+      if (hit) return hit;
+    }
+    const chat = list.find((m) => /^(gpt|o\d)/.test(m) && !/codex|audio|realtime|transcribe|tts|image|embedding|search/i.test(m));
+    if (chat) return chat;
+  }
+  return 'gpt-5-mini';
+}
 
 // Forward the app's AI request with the server-side key. Only the fields the app uses are passed
 // on, only the app's models are allowed, and the answer always comes back in the same
@@ -35,7 +91,8 @@ const isReasoning = (m) => /^(gpt-5|o\d)/.test(m);
 export async function openRouter(req, res, { allowWeb = false } = {}) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
   if (tooMany(req)) return res.status(429).json({ error: 'Too many requests this hour' });
-  const { key, provider, model } = aiConfig();
+  const cfg = aiConfig();
+  const { key, provider } = cfg;
   if (!key) return res.status(401).json({ error: 'OPENROUTER_API_KEY is not set on the server' });
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
@@ -43,7 +100,7 @@ export async function openRouter(req, res, { allowWeb = false } = {}) {
   if (!models.length || !Array.isArray(body.messages)) return res.status(400).json({ error: 'Bad request' });
   const wantsWeb = allowWeb && Array.isArray(body.plugins) && body.plugins.some((p) => p && p.id === 'web');
 
-  if (provider === 'openai') return openAI(res, key, model, body, wantsWeb);
+  if (provider !== 'openrouter') return openAI(res, cfg, await pickModel(cfg), body, wantsWeb);
 
   const payload = {
     models,
@@ -67,10 +124,13 @@ export async function openRouter(req, res, { allowWeb = false } = {}) {
   return res.send(await upstream.text());
 }
 
-// OpenAI directly. Web search goes through the Responses API (built-in web_search tool) and is
-// converted back to the chat-completions shape the app reads, including source links.
-async function openAI(res, key, model, body, wantsWeb) {
-  const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+// OpenAI, the U-M GPT Toolkit, or another OpenAI-compatible service. Web search goes through the
+// Responses API (built-in web_search tool) and is converted back to the chat-completions shape the
+// app reads, including source links. If the service can't search the web, the app is told so
+// (code "no_web_search") and falls back to the free news search with the AI reviewing the results.
+async function openAI(res, cfg, model, body, wantsWeb) {
+  const headers = aiHeaders(cfg);
+  const q = cfg.azure ? `?api-version=${encodeURIComponent(cfg.apiVersion)}` : '';
   // Reasoning models spend part of the output budget thinking, so give them room.
   const budget = isReasoning(model) ? 16000 : Math.min(Number(body.max_tokens) || 2000, MAX_TOKENS);
 
@@ -78,7 +138,8 @@ async function openAI(res, key, model, body, wantsWeb) {
     const payload = { model, messages: body.messages, max_completion_tokens: budget };
     if (isReasoning(model)) payload.reasoning_effort = 'low';
     else if (typeof body.temperature === 'number') payload.temperature = body.temperature;
-    const upstream = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers, body: JSON.stringify(payload) });
+    const url = cfg.azure ? `${cfg.base}/deployments/${encodeURIComponent(model)}/chat/completions${q}` : `${cfg.base}/chat/completions`;
+    const upstream = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
     res.status(upstream.status);
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
     return res.send(await upstream.text());
@@ -87,15 +148,24 @@ async function openAI(res, key, model, body, wantsWeb) {
   const text = body.messages.map((m) => (typeof m.content === 'string' ? m.content : (m.content || []).map((c) => c.text || '').join('\n'))).join('\n\n');
   const payload = { model, input: text, tools: [{ type: 'web_search' }], max_output_tokens: budget };
   if (isReasoning(model)) payload.reasoning = { effort: 'low' };
-  const upstream = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers, body: JSON.stringify(payload) });
-  const raw = await upstream.text();
+  let upstream, raw;
+  try {
+    upstream = await fetch(`${cfg.base}/responses${q}`, { method: 'POST', headers, body: JSON.stringify(payload) });
+    raw = await upstream.text();
+  } catch {
+    return res.status(501).json({ error: { message: 'This AI service could not be reached for web search', code: 'no_web_search' } });
+  }
   if (!upstream.ok) {
-    res.status(upstream.status);
-    res.setHeader('Content-Type', 'application/json');
-    return res.send(raw);
+    // Bad key, no credit or rate limits are real errors; anything else means web search isn't offered.
+    if ([401, 402, 403, 429].includes(upstream.status)) {
+      res.status(upstream.status);
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(raw);
+    }
+    return res.status(501).json({ error: { message: `Web search is not available from this AI service (${upstream.status})`, code: 'no_web_search' } });
   }
   let data = {};
-  try { data = JSON.parse(raw); } catch { return res.status(502).json({ error: 'Unexpected answer from OpenAI' }); }
+  try { data = JSON.parse(raw); } catch { return res.status(502).json({ error: 'Unexpected answer from the AI service' }); }
   const parts = (data.output || []).filter((o) => o.type === 'message').flatMap((o) => o.content || []).filter((c) => c.type === 'output_text');
   const content = parts.map((c) => c.text).join('\n');
   const annotations = parts.flatMap((c) => c.annotations || []).filter((a) => a.type === 'url_citation' && a.url)
