@@ -8,7 +8,7 @@ import { safeUrl } from './news.js';
 const S = {
   1: '1. Memo details', 2: '2. Borrower', 3: '3. Loan request', 4: '4. Project',
   5: '5. Firm financials', 6: '6. Project cash flow & underwriting', 7: '7. Loan sizing & repayment',
-  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team', 11: '11. Neighborhood impact calculator',
+  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team', 11: '11. Neighborhood impact calculator', 12: '12. Extra memo sections',
 };
 export const FIELDS = {
   fundName: ['Fund name', 1], fundTagline: ['Fund tagline', 1], memoDate: ['Memo date', 1], relationshipManager: ['Relationship manager', 1],
@@ -36,7 +36,7 @@ export const FIELDS = {
   guarantorName: ['Guarantor', 7], guarantorPortfolio: ['Guarantor’s existing portfolio', 7], guarantorDscr: ['Guarantor portfolio DSCR', 7],
   collateralProperties: ['Collateral properties', 7],
   risks: ['Risks & mitigants', 8], taNeeds: ['Anticipated technical assistance needs', 8], approvers: ['Approvals', 8],
-  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11],
+  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11], customSections: ['Extra memo sections', 12],
 };
 const COLS = { amount: 'amount', revenue: 'revenue', netIncome: 'net income', label: 'item', year: 'year', expenses: 'operating expenses', debtService: 'debt service', annualRent: 'annual rent', marketValue: 'market value' };
 

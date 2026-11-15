@@ -77,6 +77,7 @@ export const emptyDeal = {
   taNeeds: '',
   approvers: [{ name: '', title: 'Chief Operating Officer' }, { name: '', title: 'Fund Manager' }],
   team: [],
+  customSections: [],
   news: [],
   newsSummary: '',
   newsCheckedAt: '',
@@ -206,6 +207,7 @@ export const sampleDeal = {
     { name: 'Sam Rivera', company: 'Sample Design Studio', role: 'Architect', bio: 'Licensed architect with 15 years of small-format retail and office design experience.' },
     { name: 'Taylor Brooks', company: 'Example Construction Co.', role: 'General Contractor', bio: 'GC with a portfolio of 30+ commercial projects under $10M in the region.' },
   ],
+  customSections: [],
   newsSummary: 'SAMPLE ONLY: these news items are made up to show how results look. Press “Search the news” to replace them with real results.',
   newsCheckedAt: '',
   news: [

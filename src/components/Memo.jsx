@@ -3,6 +3,7 @@ import { analyze, LEVEL_LABEL } from '../lib/analysis.js';
 import { num, has, money, moneyShort, pct, fmtDate, or } from '../lib/format.js';
 import { BarCompare, StackedShare, Columns } from './Charts.jsx';
 import { safeUrl } from '../lib/news.js';
+import { memoExtras } from '../lib/sections.js';
 
 // Layout follows the fund's own investment memos (EBIARA format): REQUEST, INVESTMENT MERITS with
 // colour-filled evaluation cells, key considerations, project breakdown, sources & uses, mission
@@ -84,6 +85,17 @@ function MemoDoc({ deal }) {
   const lastProj = a.projections[a.projections.length - 1];
   const hasUnits = has(deal.residentialUnits) || has(deal.commercialSqFt);
   const sch = a.schedule;
+  const extras = memoExtras(deal);
+  // Sections the team added (template or this memo only), shown after the section they chose.
+  const extra = (pos) => (extras[pos] || []).map((x, i) => (
+    <section className={`custom-section${x.template ? ' from-template' : ''}`} key={`${pos}-${i}`}>
+      <h2>{String(x.title).toUpperCase()}</h2>
+      {String(x.body || '').trim()
+        ? String(x.body).split(/\n\s*\n/).map((para, j) => <p key={j}>{para}</p>)
+        : <p><Missing what={`${x.title} text`} /></p>}
+      {x.template && !x.filled && String(x.body || '').trim() ? <Note>Starting text from the saved section. Replace it with this deal’s details, on the Deal data page (section 12) or by editing the memo.</Note> : null}
+    </section>
+  ));
   const amis = [...new Set(a.tiers.map((t) => t.ami).filter((x) => x > 0))].sort((x, y) => x - y);
   const amiText = amis.length ? amis.map((x) => `${x}%`).join(amis.length > 2 ? ', ' : ' and ') : has(deal.amiPct) ? `${num(deal.amiPct)}%` : '';
   const tierText = a.tiers.length ? a.tiers.map((t) => `${t.units} at ${t.ami}% AMI`).join(a.tiers.length > 2 ? ', ' : ' and ') : '';
@@ -183,6 +195,8 @@ function MemoDoc({ deal }) {
           <AmountTable name="urgeUses" title="Uses" rows={deal.urgeUses} total={a.urgeUsesTotal} totalLabel="Total Uses" />
         </div>
       </section>
+
+      {extra('request')}
 
       <section>
         <h2>INVESTMENT MERITS</h2>
@@ -292,6 +306,8 @@ function MemoDoc({ deal }) {
         <Note>Underwriter to confirm: cross-check the bio, prior projects and any litigation against public records and news before committee.</Note>
       </section>
 
+      {extra('merits')}
+
       <section>
         <h2>PROJECT BREAKDOWN</h2>
         <div className="table-scroll">
@@ -310,6 +326,8 @@ function MemoDoc({ deal }) {
         </div>
       </section>
 
+      {extra('breakdown')}
+
       <section>
         <h2>PROJECT SOURCES AND USES</h2>
         <div className="two-col su">
@@ -327,6 +345,8 @@ function MemoDoc({ deal }) {
         )}
       </section>
 
+      {extra('sources')}
+
       <section>
         <h2>MISSION ALIGNMENT</h2>
         <table className="criteria">
@@ -339,6 +359,8 @@ function MemoDoc({ deal }) {
           </tbody>
         </table>
       </section>
+
+      {extra('mission')}
 
       {a.impact && (
         <section>
@@ -363,6 +385,8 @@ function MemoDoc({ deal }) {
         </section>
       )}
 
+      {extra('impact')}
+
       <section>
         <h2>INVESTMENT OVERVIEW</h2>
         <p>
@@ -373,6 +397,8 @@ function MemoDoc({ deal }) {
           Beyond the single project, the loan is intended to strengthen {firm} as a company: {has(deal.growthPlan) ? deal.growthPlan.charAt(0).toLowerCase() + deal.growthPlan.slice(1) : <Missing what="Growth plan" />}
         </p>
       </section>
+
+      {extra('overview')}
 
       {a.proj.length > 0 && (
         <section>
@@ -404,6 +430,8 @@ function MemoDoc({ deal }) {
           </div>
         </section>
       )}
+
+      {extra('projections')}
 
       <section>
         <h2>FIRM FINANCIALS</h2>
@@ -439,6 +467,8 @@ function MemoDoc({ deal }) {
         ) : <p><Missing what="Firm financials" /></p>}
       </section>
 
+      {extra('financials')}
+
       <section>
         <h2>CONSOLIDATED REPAYMENT CAPACITY</h2>
         <p>
@@ -462,11 +492,15 @@ function MemoDoc({ deal }) {
         )}
       </section>
 
+      {extra('repayment')}
+
       <section>
         <h2>ORGANIZATIONAL STRUCTURE</h2>
         <p>{v(deal.orgStructure, 'Organizational structure')}</p>
         <Note>Insert the borrower’s organizational chart here and highlight the entity that receives {fund}’s loan proceeds.</Note>
       </section>
+
+      {extra('org')}
 
       <section>
         <h2>BORROWER &amp; SPONSOR TEAM</h2>
@@ -516,6 +550,8 @@ function MemoDoc({ deal }) {
         <p className="small">Full bios are in Exhibit A.</p>
       </section>
 
+      {extra('team')}
+
       <section>
         <h2>RISKS &amp; MITIGANTS</h2>
         {risks.length ? (
@@ -541,6 +577,8 @@ function MemoDoc({ deal }) {
           </>
         ) : <p><Missing what="Risks and mitigants" /></p>}
       </section>
+
+      {extra('risks')}
 
       <section>
         <h2>RECENT NEWS &amp; PUBLIC INFORMATION</h2>
@@ -570,6 +608,8 @@ function MemoDoc({ deal }) {
         <Note>Underwriter to confirm: open each source and verify it refers to this borrower and site before committee.{deal.newsCheckedAt ? ` Search run ${deal.newsCheckedAt}.` : ''}</Note>
       </section>
 
+      {extra('news')}
+
       <section className="flags-section">
         <h2>UNDERWRITER REVIEW: AUTOMATED FLAGS</h2>
         <p className="small">Automatically generated checks. Each one shows the evidence and rule behind it. Confirm or dismiss each before sending to committee.</p>
@@ -585,6 +625,8 @@ function MemoDoc({ deal }) {
         ) : <p>No flags raised.</p>}
         {has(deal.underwriterNotes) && (<><h3>Underwriter notes</h3><p>{deal.underwriterNotes}</p></>)}
       </section>
+
+      {extra('flags')}
 
       <section>
         <h2>LOAN SIZING &amp; STRUCTURING</h2>
@@ -631,6 +673,8 @@ function MemoDoc({ deal }) {
         ) : <p><Missing what="Repayment options" /></p>}
       </section>
 
+      {extra('sizing')}
+
       <section>
         <h2>RECOMMENDATION</h2>
         <p>
@@ -643,6 +687,8 @@ function MemoDoc({ deal }) {
         </p>
       </section>
 
+      {extra('recommendation')}
+
       <section className="approvals">
         <h2>APPROVALS</h2>
         {signers.map((s, i) => (
@@ -652,6 +698,8 @@ function MemoDoc({ deal }) {
           </div>
         ))}
       </section>
+
+      {extra('approvals')}
 
       <section className="exhibit">
         <h2 className="exhibit-title">Exhibit A: Project Team</h2>
@@ -693,6 +741,8 @@ function MemoDoc({ deal }) {
           </tbody>
         </table>
       </section>
+
+      {extra('end')}
 
       <footer className="memo-footer">{firm}</footer>
     </article>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { searchNews, searchNewsFree, manualSearches } from '../lib/news.js';
 import { analyze, suggestStage, STAGES } from '../lib/analysis.js';
 import { moneyShort } from '../lib/format.js';
+import { POSITIONS, positionLabel } from '../lib/sections.js';
 
 const YES_NO = ['', 'Yes', 'No'];
 
@@ -139,7 +140,92 @@ function ImpactPreview({ deal }) {
   );
 }
 
-export default function DealForm({ deal, set }) {
+// Section 12: add extra memo sections, either to all future memos (kept on this device) or to
+// just this memo (saved with the deal).
+function ExtraSections({ deal, set, templates = [], setTemplates }) {
+  const [draft, setDraft] = useState({ title: '', position: 'risks', body: '', scope: 'this' });
+  const [msg, setMsg] = useState('');
+  const rows = deal.customSections || [];
+  const own = rows.filter((r) => !r.templateId);
+  const textFor = (id) => rows.find((r) => String(r.templateId) === String(id))?.body || '';
+  const setTextFor = (t, body) => {
+    const rest = rows.filter((r) => String(r.templateId) !== String(t.id));
+    set({ ...deal, customSections: body.trim() ? [...rest, { title: t.title, position: t.position, body, templateId: String(t.id) }] : rest });
+  };
+  const add = () => {
+    const title = draft.title.trim();
+    if (!title) { setMsg('Give the section a title first.'); return; }
+    if (draft.scope === 'all') {
+      setTemplates([...templates, { id: `s${Date.now()}`, title, position: draft.position, body: draft.body.trim() }]);
+      setMsg(`Added “${title}” to all future memos on this device.`);
+    } else {
+      set({ ...deal, customSections: [...rows, { title, position: draft.position, body: draft.body, templateId: '' }] });
+      setMsg(`Added “${title}” to this memo.`);
+    }
+    setDraft({ ...draft, title: '', body: '' });
+  };
+  const removeOwn = (r) => set({ ...deal, customSections: rows.filter((x) => x !== r) });
+  const updateOwn = (r, patch) => set({ ...deal, customSections: rows.map((x) => (x === r ? { ...x, ...patch } : x)) });
+  const removeTemplate = (t) => {
+    if (!confirm(`Remove “${t.title}” from all future memos on this device?`)) return;
+    setTemplates(templates.filter((x) => x.id !== t.id));
+    set({ ...deal, customSections: rows.filter((r) => String(r.templateId) !== String(t.id)) });
+  };
+  const posSelect = (value, onChange, label) => (
+    <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+      {POSITIONS.map(([k, l]) => <option key={k} value={k}>After {l}</option>)}
+    </select>
+  );
+  return (
+    <>
+      <div className="field wide add-section">
+        <span className="label">Add a section</span>
+        <input aria-label="Section title" placeholder="Section title, e.g. Environmental Review" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+        {posSelect(draft.position, (position) => setDraft({ ...draft, position }), 'Where it goes in the memo')}
+        <textarea aria-label="Section text" rows={3} placeholder="Text for the section (for “all future memos”, this is the starting text or guidance each memo begins with)" value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+        <div className="scope" role="radiogroup" aria-label="Add it to">
+          <label><input type="radio" name="scope" checked={draft.scope === 'this'} onChange={() => setDraft({ ...draft, scope: 'this' })} /> Just this memo</label>
+          <label><input type="radio" name="scope" checked={draft.scope === 'all'} onChange={() => setDraft({ ...draft, scope: 'all' })} /> All future memos</label>
+        </div>
+        <div><button type="button" className="btn" onClick={add}>Add section</button></div>
+        {msg && <small role="status">{msg}</small>}
+        <small>“All future memos” sections are kept in this browser, so they appear in every memo written on this device.</small>
+      </div>
+
+      {templates.length > 0 && (
+        <div className="field wide">
+          <span className="label">In all future memos</span>
+          {templates.map((t) => (
+            <div className="extra-row" key={t.id}>
+              <div className="extra-head"><strong>{t.title}</strong> <small>after {positionLabel(t.position)}</small>
+                <button type="button" className="link-btn danger" onClick={() => removeTemplate(t)}>Remove from all memos</button></div>
+              <textarea aria-label={`${t.title}: text for this memo`} rows={3} placeholder={t.body ? `Starting text: ${t.body}` : 'Text for this memo'} value={textFor(t.id)} onChange={(e) => setTextFor(t, e.target.value)} />
+              <small>Text for this memo. Leave blank to use the starting text.</small>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {own.length > 0 && (
+        <div className="field wide">
+          <span className="label">Only in this memo</span>
+          {own.map((r, i) => (
+            <div className="extra-row" key={i}>
+              <div className="extra-head">
+                <input aria-label="Section title" value={r.title} onChange={(e) => updateOwn(r, { title: e.target.value })} />
+                {posSelect(r.position, (position) => updateOwn(r, { position }), 'Where it goes')}
+                <button type="button" className="icon-btn" aria-label={`Remove ${r.title}`} onClick={() => removeOwn(r)}>×</button>
+              </div>
+              <textarea aria-label={`${r.title} text`} rows={3} value={r.body} onChange={(e) => updateOwn(r, { body: e.target.value })} />
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function DealForm({ deal, set, templates, setTemplates }) {
   const p = { deal, set };
   return (
     <div className="form">
@@ -309,6 +395,11 @@ export default function DealForm({ deal, set }) {
         <legend>11. Neighborhood impact calculator</legend>
         <ImpactPreview deal={deal} />
         <Field {...p} name="propertyTaxRatePct" label="Local property tax rate (optional)" type="number" suffix="% of cost" hint="Leave blank to use a 1.5%–3% range." />
+      </fieldset>
+
+      <fieldset>
+        <legend>12. Extra memo sections</legend>
+        <ExtraSections {...p} templates={templates} setTemplates={setTemplates} />
       </fieldset>
     </div>
   );

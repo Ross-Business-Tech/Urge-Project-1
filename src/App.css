@@ -515,3 +515,18 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
   .memo.ebiara .people { grid-template-columns: 1fr; }
   .memo.ebiara table.impact th[scope=row] { width: auto; }
 }
+
+/* Section 12: extra memo sections */
+.add-section { gap: 8px !important; }
+.add-section select, .extra-row select { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; background: #fbfcfd; }
+.add-section textarea, .extra-row textarea, .extra-row input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; background: #fbfcfd; }
+.scope { display: flex; flex-wrap: wrap; gap: 16px; font-size: 15px; }
+.scope label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.field .scope input[type=radio] { width: auto; margin: 0; }
+.extra-row { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; margin-top: 6px; }
+.extra-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.extra-head input { flex: 2 1 160px; }
+.extra-head select { flex: 1 1 160px; width: auto !important; }
+.link-btn.danger { color: var(--red); margin-left: auto; }
+.memo.ebiara .custom-section h2 { border-left: 4px solid var(--doc-navy); padding-left: 8px; }
+@media print { .memo.ebiara .custom-section h2 { border-left: 0; padding-left: 0; } }
