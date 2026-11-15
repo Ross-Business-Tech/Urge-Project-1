@@ -55,7 +55,15 @@ export async function rss(req, res, base) {
   if (req.method !== 'GET') return res.status(405).send('Use GET');
   if (tooMany(req, 200)) return res.status(429).send('Too many requests this hour');
   const qs = new URL(req.url, 'http://x').search;
-  const upstream = await fetch(base + qs, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MemoDrafter/1.0)' } });
+  // Pass on the visitor's browser details: news sites often return empty feeds to requests
+  // that look like bots.
+  const upstream = await fetch(base + qs, {
+    headers: {
+      'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+      'Accept-Language': req.headers['accept-language'] || 'en-US,en;q=0.9',
+      Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+    },
+  });
   res.status(upstream.status);
   res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/xml');
   res.setHeader('Cache-Control', 's-maxage=900');

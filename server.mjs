@@ -93,7 +93,15 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
 }
 
 http.createServer((req, res) => {
-  const route = ROUTES[new URL(req.url, 'http://x').pathname];
+  const pathname = new URL(req.url, 'http://x').pathname;
+  // Status page for checking a deploy. Says whether the AI key is set, never what it is.
+  if (pathname === '/api/health') {
+    const key = (process.env.OPENROUTER_API_KEY || '').trim();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.end(JSON.stringify({ ok: true, aiKeySet: Boolean(key), aiKeyLooksRight: /^sk-or-/.test(key), node: process.version }));
+  }
+  const route = ROUTES[pathname];
   if (route) return handleApi(req, res, route);
   return serveStatic(req, res);
 }).listen(PORT, () => {
