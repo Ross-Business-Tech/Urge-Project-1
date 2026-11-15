@@ -15,3 +15,8 @@ services:
         value: "22"
       - key: OPENROUTER_API_KEY
         sync: false # Render asks for the value; it is never stored in the repository
+      # The key can be from OpenRouter (sk-or-...), OpenAI (sk-...) or the U-M GPT Toolkit
+      # (toolkit.umgpt.umich.edu). Optional extras, added under Environment if needed:
+      #   AI_ORGANIZATION  U-M shortcode (6 digits), if the U-M key requires it
+      #   AI_MODEL         a specific model (otherwise chosen from what the service offers)
+      #   AI_BASE_URL      a different OpenAI-compatible address

@@ -87,6 +87,10 @@ export async function searchNews(deal) {
   } catch {
     throw new Error('Couldn’t reach the news search. Check your connection and try again.');
   }
+  if (res.status === 501) {
+    const why = await res.clone().json().catch(() => null);
+    if (why?.error?.code === 'no_web_search') return reviewFreeResults(deal);
+  }
   if (!res.ok) throw new Error(await aiError(res, 'The AI news search'));
 
   const data = await res.json().catch(() => null);
@@ -111,6 +115,52 @@ export async function searchNews(deal) {
   })).filter((it) => it.headline);
 
   return { summary: clean(parsed.summary, 800), items, citations };
+}
+
+// When the AI service can't search the web itself (e.g. the U-M GPT Toolkit), the free search
+// finds the articles and the AI reads them: it keeps the ones about this borrower or site,
+// rates them and explains why each matters. Links are only ever the ones the free search found.
+async function reviewFreeResults(deal) {
+  const free = await searchNewsFree(deal);
+  if (!free.items.length) return { ...free, summary: `${free.summary} (The AI reviews the articles the free search finds; there were none to review.)` };
+  const list = free.items.map((it, i) => `${i + 1}. [${it.about}] ${it.headline} (${it.source}, ${it.date}) ${it.summary}`).join('\n');
+  const prompt = `You are helping a real estate lender's underwriter prepare an investment committee memo.
+Borrower firm: "${deal.firmName || 'unknown'}"; principal: "${deal.principalName || 'unknown'}"${deal.hqCity ? ` (${deal.hqCity})` : ''}.
+Project: "${deal.projectName || 'unknown'}" at "${deal.projectAddress || 'unknown'}".
+
+A news search found these articles (headline, source, date, snippet):
+${list}
+
+For each article decide whether it is really about this borrower/principal or about the area around this site.
+Rate the ones that are: "red" = could hurt repayment or reputation and must be checked; "yellow" = worth a look; "green" = supportive.
+Return ONLY JSON: {"summary":"2-3 sentence plain-language overview","items":[{"n":<article number>,"relevant":true|false,"level":"red|yellow|green","relevance":"1 sentence on why it matters to this loan"}]}`;
+  let res;
+  try {
+    res = await fetch('./api/news', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ models: MODELS, messages: [{ role: 'user', content: prompt }], max_tokens: 3000 }),
+    });
+  } catch {
+    return { ...free, summary: `${free.summary} (The AI review could not be reached, so these are keyword ratings.)` };
+  }
+  if (!res.ok) throw new Error(await aiError(res, 'The AI news review'));
+  const data = await res.json().catch(() => null);
+  const parsed = parseJson(data?.choices?.[0]?.message?.content);
+  if (!parsed || !Array.isArray(parsed.items)) return { ...free, summary: `${free.summary} (The AI review returned something unexpected, so these are keyword ratings.)` };
+  const byN = new Map(parsed.items.map((x) => [Number(x.n), x]));
+  const items = free.items
+    .map((it, i) => ({ it, r: byN.get(i + 1) }))
+    .filter(({ r }) => !r || r.relevant !== false)
+    .map(({ it, r }) => (r ? { ...it, level: ['red', 'yellow', 'green'].includes(r.level) ? r.level : it.level, relevance: clean(r.relevance, 300) || it.relevance } : it));
+  const dropped = free.items.length - items.length;
+  const order = { red: 0, yellow: 1, green: 2 };
+  items.sort((a, b) => order[a.level] - order[b.level]);
+  return {
+    summary: `${clean(parsed.summary, 700)} (AI review of ${free.items.length} article(s) from Bing/Google News${dropped ? `; ${dropped} not about this deal were removed` : ''}.)`,
+    items,
+    citations: [],
+  };
 }
 
 // ---------------------------------------------------------------------------
