@@ -13,7 +13,7 @@ import news from './api/news.js';
 import extract from './api/extract.js';
 import bnews from './api/bnews.js';
 import gnews from './api/gnews.js';
-import { aiConfig } from './api/_lib.js';
+import { aiConfig, listModels, pickModel } from './api/_lib.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -93,22 +93,26 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
   process.exit(1);
 }
 
+async function health(res) {
+  const ai = aiConfig();
+  const out = { ok: true, aiKeySet: Boolean(ai.key), aiProvider: ai.provider, node: process.version };
+  if (ai.key && ai.provider !== 'openrouter') {
+    out.aiAddress = ai.base;
+    out.aiOrganizationSet = Boolean(ai.org);
+    const m = await listModels(ai);
+    out.aiModel = await pickModel(ai);
+    if (m.list) out.modelsOffered = m.list.slice(0, 40);
+    if (m.error) out.modelListError = m.error;
+  } else if (ai.provider === 'openrouter') out.aiModel = 'anthropic/claude-sonnet-5.5';
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(JSON.stringify(out, null, 2));
+}
+
 http.createServer((req, res) => {
   const pathname = new URL(req.url, 'http://x').pathname;
   // Status page for checking a deploy. Says whether the AI key is set, never what it is.
-  if (pathname === '/api/health') {
-    const ai = aiConfig();
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-store');
-    return res.end(JSON.stringify({
-      ok: true,
-      aiKeySet: Boolean(ai.key),
-      aiProvider: ai.provider,
-      aiModel: ai.provider === 'openai' ? ai.model : ai.provider === 'openrouter' ? 'anthropic/claude-sonnet-5.5' : null,
-      aiKeyLooksRight: /^sk-/.test(ai.key),
-      node: process.version,
-    }));
-  }
+  if (pathname === '/api/health') return health(res);
   const route = ROUTES[pathname];
   if (route) return handleApi(req, res, route);
   return serveStatic(req, res);
