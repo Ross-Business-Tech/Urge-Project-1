@@ -64,8 +64,8 @@ export async function aiError(res, what) {
   if (/not set on the server/i.test(detail))
     return `${what} isn’t switched on yet: the server has no OPENROUTER_API_KEY. In Render, open the service → Environment, add OPENROUTER_API_KEY, save, and let it redeploy.`;
   if (res.status === 401 || res.status === 403)
-    return `The AI service rejected the API key${detail ? ` (it said: “${detail}”)` : ''}. Check that OPENROUTER_API_KEY is copied exactly, with no spaces, and that the key is still active.`;
-  if (res.status === 402) return `The AI account is out of credit${detail ? ` (“${detail}”)` : ''}. Add credit in OpenRouter, then try again.`;
+    return `The AI service rejected the API key${detail ? ` (it said: “${detail}”)` : ''}. Check that the key in Render’s OPENROUTER_API_KEY setting is copied exactly and is still active.`;
+  if (res.status === 402 || /quota|billing|credit/i.test(detail)) return `The AI account is out of credit${detail ? ` (“${detail}”)` : ''}. Add credit or billing to the AI account (OpenAI or OpenRouter), then try again.`;
   if (res.status === 413) return 'Too much to send at once. Remove some files (or big scans) and try again.';
   if (res.status === 429) return 'Too many AI requests in the last hour. Try again later.';
   return `${what} failed (error ${res.status}${detail ? `: “${detail}”` : ''}). Try again in a minute.`;
