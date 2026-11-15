@@ -1,5 +1,4 @@
-// Shared helpers for the Vercel serverless functions in /api.
-// Files starting with "_" are not exposed as routes by Vercel.
+// Shared helpers for the /api routes served by server.mjs (Render).
 // These do the same job as the here.now proxy routes in public/.herenow/proxy.json.
 
 const ALLOWED_MODELS = new Set(['anthropic/claude-sonnet-5.5', 'anthropic/claude-sonnet-4.5']);
@@ -23,7 +22,7 @@ export async function openRouter(req, res, { allowWeb = false } = {}) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
   if (tooMany(req)) return res.status(429).json({ error: 'Too many requests this hour' });
   const key = process.env.OPENROUTER_API_KEY;
-  if (!key) return res.status(401).json({ error: 'OPENROUTER_API_KEY is not set on Vercel' });
+  if (!key) return res.status(401).json({ error: 'OPENROUTER_API_KEY is not set on the server' });
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
   const models = (Array.isArray(body.models) ? body.models : [body.model]).filter((m) => ALLOWED_MODELS.has(m));
