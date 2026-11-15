@@ -13,7 +13,7 @@ import news from './api/news.js';
 import extract from './api/extract.js';
 import bnews from './api/bnews.js';
 import gnews from './api/gnews.js';
-import { cleanKey } from './api/_lib.js';
+import { aiConfig } from './api/_lib.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -97,14 +97,21 @@ http.createServer((req, res) => {
   const pathname = new URL(req.url, 'http://x').pathname;
   // Status page for checking a deploy. Says whether the AI key is set, never what it is.
   if (pathname === '/api/health') {
-    const key = cleanKey(process.env.OPENROUTER_API_KEY);
+    const ai = aiConfig();
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
-    return res.end(JSON.stringify({ ok: true, aiKeySet: Boolean(key), aiKeyLooksRight: /^sk-or-/.test(key), node: process.version }));
+    return res.end(JSON.stringify({
+      ok: true,
+      aiKeySet: Boolean(ai.key),
+      aiProvider: ai.provider,
+      aiModel: ai.provider === 'openai' ? ai.model : ai.provider === 'openrouter' ? 'anthropic/claude-sonnet-5.5' : null,
+      aiKeyLooksRight: /^sk-/.test(ai.key),
+      node: process.version,
+    }));
   }
   const route = ROUTES[pathname];
   if (route) return handleApi(req, res, route);
   return serveStatic(req, res);
 }).listen(PORT, () => {
-  console.log(`Memo Drafter running on port ${PORT}${cleanKey(process.env.OPENROUTER_API_KEY) ? '' : ' (OPENROUTER_API_KEY not set: AI features are off)'}`);
+  console.log(`Memo Drafter running on port ${PORT}${aiConfig().key ? ` (AI: ${aiConfig().provider})` : ' (OPENROUTER_API_KEY not set: AI features are off)'}`);
 });
