@@ -37,7 +37,7 @@ export function rateIndependent(deal) {
   if (has(deal.walkScore)) out.walk = num(deal.walkScore) >= R.walkScore.green ? 'green' : 'yellow';
 
   const greens = [
-    deal.bipocOwned === 'Yes',
+    has(deal.developerStage) ? R.emergingStages.includes(deal.developerStage) : deal.bipocOwned === 'Yes',
     has(deal.growthPlan),
     num(deal.jobsCreated) >= R.jobsGreen,
     deal.impactArea === 'Yes',

@@ -367,3 +367,29 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
   .memo.ebiara .memo-footer { display: block; position: fixed; bottom: 0; left: 0; font-size: 9pt; color: #333; }
   .memo.ebiara .table-scroll table { min-width: 0; }
 }
+
+/* Memo sub-sections, people cards and the impact estimate (client feedback, midpoint meeting) */
+.memo.ebiara h3.sub { text-align: left; text-decoration: none; font-size: 15px; font-weight: 700; margin: 16px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #cfcfcf; }
+.memo.ebiara h4.group { margin: 14px 0 4px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #555; }
+.memo.ebiara .people { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 10px; }
+.memo.ebiara .person { display: flex; gap: 12px; align-items: flex-start; border: 1px solid #cfcfcf; padding: 10px 12px; }
+.memo.ebiara .person.lead { grid-column: 1 / -1; background: #f7f9fc; }
+.memo.ebiara .person p { margin: 0; text-align: left; }
+.memo.ebiara .avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--doc-navy); color: #fff; font-weight: 700; font-size: 14px; letter-spacing: .03em; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.memo.ebiara .person-name { font-weight: 700; }
+.memo.ebiara .person-role { color: #444; font-size: 13.5px; }
+.memo.ebiara .person-bio { font-size: 13.5px; margin-top: 4px !important; }
+.memo.ebiara .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 5px 0 2px !important; }
+.memo.ebiara .chip { font-size: 12px; border: 1px solid #b9c3d6; background: #fff; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.memo.ebiara table.impact th[scope=row] { width: 34%; }
+.memo.ebiara table.impact td.small { font-size: 12.5px; color: #444; }
+.memo.ebiara table.impact td:nth-child(3) { white-space: nowrap; }
+.impact-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.impact-table th, .impact-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.impact-table td small { display: block; color: var(--muted); font-size: 12px; }
+.impact-table .num { text-align: right; white-space: nowrap; font-weight: 600; }
+.impact-table .num small { font-weight: 400; }
+@media (max-width: 640px) {
+  .memo.ebiara .people { grid-template-columns: 1fr; }
+  .memo.ebiara table.impact th[scope=row] { width: auto; }
+}

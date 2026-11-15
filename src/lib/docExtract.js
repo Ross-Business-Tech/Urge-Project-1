@@ -16,9 +16,9 @@ const NUMBER = new Set([
   'yearsExperience', 'projectsCompleted', 'loanAmount', 'interestRate', 'termMonths', 'originationFee', 'squareFeet',
   'totalProjectCost', 'walkScore', 'jobsCreated', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash',
   'ownerSharePct', 'exitProceeds', 'exitMonth', 'interestOnlyMonths', 'amortizationYears', 'successFeePct', 'residentialUnits',
-  'affordableUnits', 'amiPct', 'commercialSqFt', 'constructionJobs', 'borrowerVacancyPct', 'guarantorDscr',
+  'affordableUnits', 'amiPct', 'propertyTaxRatePct', 'commercialSqFt', 'constructionJobs', 'borrowerVacancyPct', 'guarantorDscr',
 ]);
-const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year', 'expenses', 'debtService', 'annualRent', 'marketValue']);
+const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year', 'expenses', 'debtService', 'annualRent', 'marketValue', 'units', 'ami']);
 const CHOICES = {
   bipocOwned: ['Yes', 'No'],
   impactArea: ['Yes', 'No'],
@@ -26,7 +26,9 @@ const CHOICES = {
   siteControl: ['Yes', 'No'],
   previouslyVacant: ['Yes', 'No'],
   constructionType: ['New construction', 'Rehab', 'Both'],
-  repaymentStructure: ['Interest-only, principal due at maturity', 'Monthly amortizing', 'Accrued interest, all due at maturity'],
+  developerStage: ['Early-emerging', 'Emerging', 'Established'],
+  projectType: ['Multifamily residential', 'Multifamily mixed-use', 'Hotel / hospitality', 'Office', 'Co-working space', 'Other'],
+  repaymentStructure: ['Interest-only, principal due at maturity', 'Interest-only period, then amortizing', 'Fully amortizing', 'Accrued interest, all due at maturity'],
 };
 const COL_CHOICES = { financials: { type: ['Actual', 'Projected'] } };
 
@@ -39,6 +41,10 @@ const HINTS = {
   repaymentOptions: 'ways the lender gets repaid, most likely first',
   projectProjections: 'the PROJECT’s yearly revenue, operating expenses and debt service from the pro forma',
   collateralProperties: 'properties pledged as collateral, with annual rent and market value',
+  affordableTiers: 'affordable units grouped by income level: number of units and % of area median income (AMI)',
+  developerStage: 'Early-emerging (very new), Emerging (growing, smaller past projects) or Established (long, large track record)',
+  targetPopulation: 'who the project is meant to serve (residents, community)',
+  interestOnlyMonths: 'from the term sheet', amortizationYears: 'from the term sheet', successFeePct: 'from the term sheet',
   guarantorDscr: 'debt service coverage of the guarantor’s existing portfolio, e.g. 1.4', team: 'developer, architect, contractor, etc.',
 };
 
@@ -59,6 +65,8 @@ function fieldGuide() {
 function buildPrompt(names) {
   return `You are helping a community lender's underwriter fill in a loan intake form from the borrower's documents.
 The documents follow: ${names.map((n) => `"${n}"`).join(', ')}.
+
+Typical files: a TERM SHEET (loan amount, rate, term, interest-only period, amortization, fees, success fee, collateral, repayment), an UNDERWRITING MODEL spreadsheet (sources and uses, project revenue, operating expenses and debt service by year, vacancy and rent assumptions), plus applications, budgets, financial statements and bios.
 
 Fill in as many of these fields as the documents support:
 ${fieldGuide()}

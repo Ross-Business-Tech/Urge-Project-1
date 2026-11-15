@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { analyze, LEVEL_LABEL } from '../lib/analysis.js';
-import { num, has, money, pct, fmtDate, or } from '../lib/format.js';
+import { num, has, money, moneyShort, pct, fmtDate, or } from '../lib/format.js';
 import { BarCompare, StackedShare, Columns } from './Charts.jsx';
 import { safeUrl } from '../lib/news.js';
 
@@ -22,6 +22,12 @@ const fx = (n) => `${n.toFixed(2)}x`;
 const sqft = (n) => Math.round(num(n)).toLocaleString('en-US');
 const lower1 = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 const stripDot = (s) => String(s || '').trim().replace(/[.\s]+$/, '');
+const initials = (name) => String(name || '?').replace(/[^A-Za-z ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+const sameName = (x, y) => String(x || '').trim().toLowerCase() === String(y || '').trim().toLowerCase();
+const firstSentence = (t) => { const m = String(t || '').trim().match(/^.+?[.!?](\s|$)/); return (m ? m[0] : String(t || '')).trim(); };
+const showRange = (r) => (r.kind === '$'
+  ? (Math.round(r.low) === Math.round(r.high) ? moneyShort(r.low) : `${moneyShort(r.low)} – ${moneyShort(r.high)}`)
+  : (Math.round(r.low) === Math.round(r.high) ? String(Math.round(r.low)) : `${Math.round(r.low)} – ${Math.round(r.high)}`));
 
 function Badge({ level }) {
   return <span className={`badge badge-${level}`}>{LEVEL_LABEL[level]}</span>;
@@ -77,6 +83,10 @@ function MemoDoc({ deal }) {
   const firstProj = a.projections[0];
   const lastProj = a.projections[a.projections.length - 1];
   const hasUnits = has(deal.residentialUnits) || has(deal.commercialSqFt);
+  const sch = a.schedule;
+  const amis = [...new Set(a.tiers.map((t) => t.ami).filter((x) => x > 0))].sort((x, y) => x - y);
+  const amiText = amis.length ? amis.map((x) => `${x}%`).join(amis.length > 2 ? ', ' : ' and ') : has(deal.amiPct) ? `${num(deal.amiPct)}%` : '';
+  const tierText = a.tiers.length ? a.tiers.map((t) => `${t.units} at ${t.ami}% AMI`).join(a.tiers.length > 2 ? ', ' : ' and ') : '';
   const props = (deal.collateralProperties || []).filter((r) => has(r.description) || has(r.marketValue));
   const approvers = (deal.approvers || []).filter((x) => has(x.name) || has(x.title));
   const signers = approvers.length ? approvers : [{ name: '', title: 'Chief Operating Officer' }, { name: '', title: 'Fund Manager' }];
@@ -119,30 +129,47 @@ function MemoDoc({ deal }) {
 
       <section>
         <h2>REQUEST</h2>
+        <h3 className="sub">Loan Request</h3>
         <p>
           Approval of a <Src r="loanAmount">{money(a.loan)}</Src> {fund} loan facility to {firm} to support {project}
-          {has(deal.assetType) ? `, a ${lower1(deal.assetType)}` : ''} located at {v(deal.projectAddress, 'Address')}. {has(deal.loanPurpose) ? `${stripDot(deal.loanPurpose)}.` : <Missing what="Loan purpose" />}
-          {hasUnits && (
-            <>
-              {' '}The “Project” will include{' '}
-              {has(deal.residentialUnits) ? <><Src r="residentialUnits">{num(deal.residentialUnits)}</Src> residential units</> : null}
-              {a.affordablePct !== null ? <>, <Src c="affordablePct">{pct(a.affordablePct, 0)}</Src> of which are affordable{has(deal.amiPct) ? <> at <Src r="amiPct">{num(deal.amiPct)}%</Src> AMI</> : ''}</> : null}
-              {has(deal.commercialSqFt) ? <>{has(deal.residentialUnits) ? ', and ' : ''}<Src r="commercialSqFt">{sqft(deal.commercialSqFt)}</Src> square feet of commercial space</> : null}
-              {num(deal.squareFeet) ? <>, of about <Src r="squareFeet">{num(deal.squareFeet).toLocaleString()} sq ft</Src> in total</> : ''}.
-            </>
-          )}
-          {!hasUnits && num(deal.squareFeet) ? <> The building has a total area of about <Src r="squareFeet">{num(deal.squareFeet).toLocaleString()} sq ft</Src>.</> : ''}
-          {deal.siteControl === 'Yes' ? ` The development team has site control${has(deal.constructionStart) ? ` and anticipates beginning construction in ${deal.constructionStart}` : ''}.` : has(deal.constructionStart) ? ` Construction is anticipated to begin in ${deal.constructionStart}.` : ''}
+          {has(deal.assetType) ? `, a ${lower1(deal.assetType)}` : has(deal.projectType) ? `, a ${lower1(deal.projectType)} project` : ''} located at {v(deal.projectAddress, 'Address')}. {has(deal.loanPurpose) ? `${stripDot(deal.loanPurpose)}.` : <Missing what="Loan purpose" />}
           {' '}{firm} is led by {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle}` : ''}.
+          {a.stage ? ` The firm is classified as ${/^[aeiou]/i.test(a.stage) ? 'an' : 'a'} ${a.stage.toLowerCase()} developer.` : ''}
         </p>
+
+        {(hasUnits || num(deal.squareFeet) || has(deal.projectType) || has(deal.targetPopulation) || has(deal.siteControl) || has(deal.constructionStart)) && (
+          <>
+            <h3 className="sub">The Project</h3>
+            <p>
+              {has(deal.projectType) ? `${project} is a ${lower1(deal.projectType)} project${has(deal.constructionType) ? ` (${lower1(deal.constructionType)})` : ''}.` : ''}
+              {hasUnits && (
+                <>
+                  {' '}The “Project” will include{' '}
+                  {has(deal.residentialUnits) ? <><Src r="residentialUnits">{num(deal.residentialUnits)}</Src> residential units</> : null}
+                  {a.affordablePct !== null ? <>, <Src c="affordablePct">{pct(a.affordablePct, 0)}</Src> of which are affordable{amiText ? <> at {amiText} AMI</> : ''}</> : null}
+                  {has(deal.commercialSqFt) ? <>{has(deal.residentialUnits) ? ', and ' : ''}<Src r="commercialSqFt">{sqft(deal.commercialSqFt)}</Src> square feet of commercial space</> : null}
+                  {num(deal.squareFeet) ? <>, of about <Src r="squareFeet">{num(deal.squareFeet).toLocaleString()} sq ft</Src> in total</> : ''}.
+                </>
+              )}
+              {!hasUnits && num(deal.squareFeet) ? <> The building has a total area of about <Src r="squareFeet">{num(deal.squareFeet).toLocaleString()} sq ft</Src>.</> : ''}
+              {deal.siteControl === 'Yes' ? ` The development team has site control${has(deal.constructionStart) ? ` and anticipates beginning construction in ${deal.constructionStart}` : ''}.` : has(deal.constructionStart) ? ` Construction is anticipated to begin in ${deal.constructionStart}.` : ''}
+              {has(deal.targetPopulation) ? ` The project is intended to serve ${lower1(stripDot(deal.targetPopulation))}.` : ''}
+            </p>
+          </>
+        )}
+
+        <h3 className="sub">Loan Terms &amp; Repayment Structure</h3>
         <p>
           {firm} requests a <strong><Src r="loanAmount">{money(a.loan)}</Src></strong> <Src r="termMonths">{termYears}</Src> loan from {fund} at <strong>{has(deal.interestRate) ? <Src r="interestRate">{num(deal.interestRate)}%</Src> : <Missing what="Rate" />}</strong> interest per annum
           {has(deal.originationFee) ? <>, with a <Src r="originationFee">{num(deal.originationFee)}%</Src> origination fee (<Src c="fee">{money(a.fee)}</Src>)</> : ''}.{' '}
-          {a.ioMonths > 0
-            ? <>The loan requires monthly interest-only payments for the first <Src r="interestOnlyMonths">{a.ioMonths} months</Src>{deal.interestReserve === 'Yes' ? ', supported by an interest reserve' : ''}
-                {a.amortStartMonth ? <>, followed by monthly principal and interest payments based on a <Src r="amortizationYears">{num(deal.amortizationYears)}-year</Src> amortization schedule commencing in <Src c="amortStart">month {a.amortStartMonth}</Src></> : ''}. </>
-            : <>Repayment structure: {deal.repaymentStructure?.toLowerCase() || <Missing what="Structure" />}. </>}
-          The outstanding principal balance plus any accrued and unpaid interest will be due at loan maturity
+          {sch.ioMonths > 0
+            ? <>The loan requires monthly interest-only payments{sch.monthlyIoPayment !== null ? <> of approximately <Src c="ioPayment">{money(sch.monthlyIoPayment)}</Src></> : ''} for the first <Src r={has(deal.interestOnlyMonths) ? 'interestOnlyMonths' : 'termMonths'}>{sch.ioMonths} months</Src>{deal.interestReserve === 'Yes' ? ', supported by an interest reserve' : ''}
+                {sch.amortPayment !== null ? <>, followed by monthly principal and interest payments of approximately <Src c="amortPayment">{money(sch.amortPayment)}</Src> based on a <Src r="amortizationYears">{sch.amortYears}-year</Src> amortization schedule commencing in <Src c="amortStart">month {sch.amortStart}</Src></> : ''}. </>
+            : sch.amortPayment !== null
+              ? <>The loan is fully amortizing, with monthly principal and interest payments of approximately <Src c="amortPayment">{money(sch.amortPayment)}</Src> based on a <Src r={has(deal.amortizationYears) ? 'amortizationYears' : 'termMonths'}>{Math.round(sch.amortYears * 10) / 10}-year</Src> schedule. </>
+              : /accrued/i.test(deal.repaymentStructure || '') ? <>Interest accrues during the term and is paid, together with principal, at maturity. </>
+                : <>Repayment structure: {deal.repaymentStructure?.toLowerCase() || <Missing what="Structure" />}. </>}
+          The outstanding principal balance{sch.amortPayment !== null && sch.balloon > 1 ? <> (approximately <Src c="balloon">{money(sch.balloon)}</Src> at maturity)</> : ''} plus any accrued and unpaid interest will be due at loan maturity
           {a.successFee > 0 ? <>, together with a success fee equal to <Src r="successFeePct">{num(deal.successFeePct)}%</Src> of the total loan amount (<Src c="successFee">{money(a.successFee)}</Src>)</> : ''}.
         </p>
 
@@ -187,36 +214,46 @@ function MemoDoc({ deal }) {
         </table>
 
         <p>Below are key considerations for the investment:</p>
+        <h4 className="group">Site &amp; Community</h4>
         <ul className="considerations">
           <li>
             <strong>NEIGHBORHOOD INVESTMENT:</strong>{' '}
             {project} is located at {v(deal.projectAddress, 'Address')}. {has(deal.walkScore) ? <>The site has a Walk Score of <Src r="walkScore">{num(deal.walkScore)}</Src> (walkscore.com). </> : ''}
             {v(deal.neighborhood, 'Neighborhood description')}
           </li>
+          {has(deal.targetPopulation) && (
+            <li><strong>WHO THE PROJECT SERVES:</strong> {deal.targetPopulation}</li>
+          )}
           {a.affordablePct !== null && (
             <li>
-              <strong>AFFORDABLE HOUSING COMPONENT:</strong> <Src r="affordableUnits">{num(deal.affordableUnits)}</Src> of <Src r="residentialUnits">{num(deal.residentialUnits)}</Src> residential units (<Src c="affordablePct">{pct(a.affordablePct, 0)}</Src>) are designated as affordable{has(deal.amiPct) ? <> at <Src r="amiPct">{num(deal.amiPct)}%</Src> AMI</> : ''}.
+              <strong>AFFORDABLE HOUSING COMPONENT:</strong> {a.tiers.length ? <Src c="affordableCount">{a.affordableCount}</Src> : <Src r="affordableUnits">{num(deal.affordableUnits)}</Src>} of <Src r="residentialUnits">{num(deal.residentialUnits)}</Src> residential units (<Src c="affordablePct">{pct(a.affordablePct, 0)}</Src>) are designated as affordable{tierText ? `: ${tierText}` : amiText ? ` at ${amiText} AMI` : ''}.
             </li>
           )}
-          {(has(deal.rentHaircutPct) || has(deal.underwrittenVacancyPct) || has(deal.underwritingNote) || a.proj.length > 0) && (
-            <li>
-              <strong>CONSERVATIVE UNDERWRITING APPROACH:</strong>{' '}
-              {has(deal.underwritingNote) ? `${stripDot(deal.underwritingNote)}. ` : ''}
-              {has(deal.rentHaircutPct) ? <>Underwriting reduced the borrower’s projected rental revenue by <Src r="rentHaircutPct">{num(deal.rentHaircutPct)}%</Src>{has(deal.underwrittenVacancyPct) ? <> and {has(deal.borrowerVacancyPct) ? <>increased vacancy from <Src r="borrowerVacancyPct">{num(deal.borrowerVacancyPct)}%</Src> to <Src r="underwrittenVacancyPct">{num(deal.underwrittenVacancyPct)}%</Src></> : <>assumed <Src r="underwrittenVacancyPct">{num(deal.underwrittenVacancyPct)}%</Src> vacancy</>}</> : ''}. </> : ''}
-              {a.firstDscr !== null ? <>With these assumptions the project reaches a DSCR of <Src c="dscr:0">{fx(a.firstDscr)}</Src> in {a.proj[0].year}{a.proj.length > 1 ? <>, improving to <Src c={`dscr:${a.proj.length - 1}`}>{fx(a.lastDscr)}</Src> by {a.proj[a.proj.length - 1].year}</> : ''}.</> : ''}
-            </li>
-          )}
+        </ul>
+        <h4 className="group">Sponsor</h4>
+        <ul className="considerations">
           <li>
             <strong>MANAGEMENT EXPERIENCE:</strong>{' '}
             {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle},` : ','} who brings{' '}
             {has(deal.yearsExperience) ? <Src r="yearsExperience">{num(deal.yearsExperience)} years</Src> : <Missing what="Years" />} of real estate development and construction experience
-            {has(deal.projectsCompleted) ? <> and <Src r="projectsCompleted">{num(deal.projectsCompleted)} completed projects</Src></> : ''}. {v(deal.principalBio, 'Principal bio')}
+            {has(deal.projectsCompleted) ? <> and <Src r="projectsCompleted">{num(deal.projectsCompleted)} completed projects</Src></> : ''}.{a.stage ? ` The firm is classified as ${/^[aeiou]/i.test(a.stage) ? 'an' : 'a'} ${a.stage.toLowerCase()} developer.` : ''} {v(deal.principalBio, 'Principal bio')}
           </li>
           {has(deal.guarantorName) && (
             <li>
               <strong>CO-BORROWER / GUARANTOR STRENGTH ({deal.guarantorName.toUpperCase()}):</strong>{' '}
               {deal.guarantorName}’s existing portfolio is considered as a secondary source of repayment. {has(deal.guarantorPortfolio) ? `${stripDot(deal.guarantorPortfolio)}. ` : ''}
               {has(deal.guarantorDscr) ? <>The portfolio has a DSCR of <Src r="guarantorDscr">{fx(num(deal.guarantorDscr))}</Src>.</> : ''}
+            </li>
+          )}
+        </ul>
+        <h4 className="group">Underwriting &amp; Collateral</h4>
+        <ul className="considerations">
+          {(has(deal.rentHaircutPct) || has(deal.underwrittenVacancyPct) || has(deal.underwritingNote) || a.proj.length > 0) && (
+            <li>
+              <strong>CONSERVATIVE UNDERWRITING APPROACH:</strong>{' '}
+              {has(deal.underwritingNote) ? `${stripDot(deal.underwritingNote)}. ` : ''}
+              {has(deal.rentHaircutPct) ? <>Underwriting reduced the borrower’s projected rental revenue by <Src r="rentHaircutPct">{num(deal.rentHaircutPct)}%</Src>{has(deal.underwrittenVacancyPct) ? <> and {has(deal.borrowerVacancyPct) ? <>increased vacancy from <Src r="borrowerVacancyPct">{num(deal.borrowerVacancyPct)}%</Src> to <Src r="underwrittenVacancyPct">{num(deal.underwrittenVacancyPct)}%</Src></> : <>assumed <Src r="underwrittenVacancyPct">{num(deal.underwrittenVacancyPct)}%</Src> vacancy</>}</> : ''}. </> : ''}
+              {a.firstDscr !== null ? <>With these assumptions the project reaches a DSCR of <Src c="dscr:0">{fx(a.firstDscr)}</Src> in {a.proj[0].year}{a.proj.length > 1 ? <>, improving to <Src c={`dscr:${a.proj.length - 1}`}>{fx(a.lastDscr)}</Src> by {a.proj[a.proj.length - 1].year}</> : ''}.</> : ''}
             </li>
           )}
           {(has(deal.collateral) || props.length > 0) && (
@@ -303,6 +340,29 @@ function MemoDoc({ deal }) {
         </table>
       </section>
 
+      {a.impact && (
+        <section>
+          <h2>NEIGHBORHOOD IMPACT ESTIMATE</h2>
+          <p>
+            Estimated from this project’s own inputs{a.projectCost ? <> (total development cost of <Src c="projectCost">{money(a.projectCost)}</Src>{has(deal.residentialUnits) ? <>, <Src r="residentialUnits">{num(deal.residentialUnits)}</Src> residential units</> : ''}{has(deal.commercialSqFt) ? <>, <Src r="commercialSqFt">{sqft(deal.commercialSqFt)}</Src> sq ft of commercial space</> : ''})</> : ''}.
+            Each figure is a range because the assumptions vary by market; it is a screening estimate, not an economic impact study.
+          </p>
+          <table className="impact">
+            <thead><tr><th>Impact</th><th className="num">Estimated range</th><th>Timing</th><th className="opt">How it is estimated</th></tr></thead>
+            <tbody>
+              {a.impact.rows.map((r) => (
+                <tr key={r.key}>
+                  <th scope="row">{r.label}</th>
+                  <td className="num"><Src c={`impact:${r.key}`}>{showRange(r)}</Src></td>
+                  <td>{r.when}</td>
+                  <td className="opt small">{r.basis}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       <section>
         <h2>INVESTMENT OVERVIEW</h2>
         <p>
@@ -349,6 +409,7 @@ function MemoDoc({ deal }) {
         <h2>FIRM FINANCIALS</h2>
         {a.fin.length ? (
           <>
+            <h3 className="sub">Historical &amp; Projected Results</h3>
             <table>
               <thead><tr><th>Year</th><th>Type</th><th className="num">Revenue</th><th className="num">Net income</th><th className="num opt">Margin</th><th className="num opt">Growth</th></tr></thead>
               <tbody>
@@ -366,6 +427,7 @@ function MemoDoc({ deal }) {
               </tbody>
             </table>
             <Columns title="Revenue by year (lighter bars are projections)" points={a.fin.map((r) => ({ label: r.year, value: num(r.revenue), muted: String(r.type).startsWith('P') }))} />
+            <h3 className="sub">Key Observations</h3>
             <ul>
               {lastActual && <li>Most recent actual year ({lastActual.year}): revenue of <Src r={`financials.${deal.financials.indexOf(lastActual)}.revenue`}>{money(lastActual.revenue)}</Src> and net income of <Src r={`financials.${deal.financials.indexOf(lastActual)}.netIncome`}>{money(lastActual.netIncome)}</Src> ({num(lastActual.revenue) ? <Src c={`margin:${lastActual.year}`}>{pct(num(lastActual.netIncome) / num(lastActual.revenue))}</Src> : '–'} margin).</li>}
               {a.avgActualGrowth !== null && <li>Historical revenue growth has averaged <Src c="avgActualGrowth">{pct(a.avgActualGrowth, 0)}</Src> per year.</li>}
@@ -407,14 +469,51 @@ function MemoDoc({ deal }) {
       </section>
 
       <section>
-        <h2>DEVELOPMENT TEAM</h2>
+        <h2>BORROWER &amp; SPONSOR TEAM</h2>
+        <h3 className="sub">Borrower</h3>
+        <div className="people">
+          <div className="person lead">
+            <span className="avatar" aria-hidden="true">{initials(principal)}</span>
+            <div>
+              <p className="person-name">{principal}</p>
+              <p className="person-role">{[deal.principalTitle, firm].filter(Boolean).join(', ')}</p>
+              <p className="chips">
+                {(a.stage || a.stageSuggested) && <span className="chip">{a.stage || `${a.stageSuggested} (suggested)`} developer</span>}
+                {has(deal.yearsExperience) && <span className="chip">{num(deal.yearsExperience)} yrs in development</span>}
+                {has(deal.projectsCompleted) && <span className="chip">{num(deal.projectsCompleted)} projects completed</span>}
+                {has(deal.guarantorName) && sameName(deal.guarantorName, principal) && <span className="chip">Personal guarantor</span>}
+                {has(deal.ownerSharePct) && <span className="chip">Owns {num(deal.ownerSharePct)}% of the firm</span>}
+              </p>
+              {has(deal.principalBio) && <p className="person-bio">{firstSentence(deal.principalBio)}</p>}
+            </div>
+          </div>
+          {has(deal.guarantorName) && !sameName(deal.guarantorName, principal) && (
+            <div className="person">
+              <span className="avatar" aria-hidden="true">{initials(deal.guarantorName)}</span>
+              <div>
+                <p className="person-name">{deal.guarantorName}</p>
+                <p className="person-role">Guarantor / co-borrower</p>
+                {has(deal.guarantorPortfolio) && <p className="person-bio">{firstSentence(deal.guarantorPortfolio)}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+        <h3 className="sub">Sponsor &amp; Development Team</h3>
         {deal.team?.length ? (
-          <table>
-            <thead><tr><th>Name</th><th>Company</th><th>Title</th></tr></thead>
-            <tbody>{deal.team.map((t, i) => <tr key={i}><td>{t.name}</td><td>{t.company}</td><td>{t.role}</td></tr>)}</tbody>
-          </table>
+          <div className="people">
+            {deal.team.filter((t) => (has(t.name) || has(t.company)) && !sameName(t.name, principal)).map((t, i) => (
+              <div className="person" key={i}>
+                <span className="avatar" aria-hidden="true">{initials(t.name || t.company)}</span>
+                <div>
+                  <p className="person-name">{t.name || t.company}</p>
+                  <p className="person-role">{[t.role, t.name ? t.company : ''].filter(Boolean).join(', ')}</p>
+                  {has(t.bio) && <p className="person-bio">{firstSentence(t.bio)}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : <p><Missing what="Development team" /></p>}
-        <p className="small">See Exhibit A for bios.</p>
+        <p className="small">Full bios are in Exhibit A.</p>
       </section>
 
       <section>
@@ -493,6 +592,7 @@ function MemoDoc({ deal }) {
           Based on the project underwriting, proposed sources and uses, collateral support, and repayment capacity, {fund} recommends consideration of a <Src r="loanAmount">{money(a.loan)}</Src> loan to {firm}.
           {deal.urgeUses?.length ? ` The facility will support ${deal.urgeUses.map((u) => lower1(u.label)).join('; ')}.` : ''}
         </p>
+        <h3 className="sub">Proposed Terms &amp; Payment Schedule</h3>
         <table className="terms">
           <thead><tr><th colSpan={2}>Proposed {fund} Loan Terms</th></tr></thead>
           <tbody>
@@ -502,8 +602,14 @@ function MemoDoc({ deal }) {
             <tr><th>Loan amount</th><td><Src r="loanAmount">{money(a.loan)}</Src></td></tr>
             <tr><th>Interest rate</th><td>{has(deal.interestRate) ? <Src r="interestRate">{num(deal.interestRate)}% per year</Src> : <Missing what="Rate" />}</td></tr>
             <tr><th>Term</th><td>{has(deal.termMonths) ? <Src r="termMonths">{a.term} months</Src> : <Missing what="Term" />}</td></tr>
-            <tr><th>Interest-only period</th><td>{a.ioMonths > 0 ? <><Src r="interestOnlyMonths">{a.ioMonths} months</Src>{deal.interestReserve === 'Yes' ? ', supported by interest reserve' : ''}</> : deal.repaymentStructure}</td></tr>
-            <tr><th>Amortization</th><td>{a.amortStartMonth ? <><Src r="amortizationYears">{num(deal.amortizationYears)} years</Src> after interest-only period</> : 'None; principal due at maturity'}</td></tr>
+            <tr><th>Repayment structure</th><td>{deal.repaymentStructure || <Missing what="Structure" />}</td></tr>
+            <tr><th>Interest-only period</th><td>{sch.ioMonths > 0 ? <><Src r={has(deal.interestOnlyMonths) ? 'interestOnlyMonths' : 'termMonths'}>{sch.ioMonths} months</Src>{deal.interestReserve === 'Yes' ? ', supported by interest reserve' : ''}</> : 'None'}</td></tr>
+            <tr><th>Amortization</th><td>{sch.amortPayment !== null ? <><Src r={has(deal.amortizationYears) ? 'amortizationYears' : 'termMonths'}>{Math.round(sch.amortYears * 10) / 10} years</Src>{sch.ioMonths > 0 ? ' after interest-only period' : ''}</> : 'None; principal due at maturity'}</td></tr>
+            <tr><th>Monthly payment</th><td>
+              {sch.monthlyIoPayment !== null ? <><Src c="ioPayment">{money(sch.monthlyIoPayment)}</Src> interest-only{sch.amortPayment !== null ? <>, then <Src c="amortPayment">{money(sch.amortPayment)}</Src> principal and interest from <Src c="amortStart">month {sch.amortStart}</Src></> : ''}</>
+                : sch.amortPayment !== null ? <><Src c="amortPayment">{money(sch.amortPayment)}</Src> principal and interest</> : '–'}
+            </td></tr>
+            <tr><th>Due at maturity</th><td>{sch.amortPayment !== null ? <><Src c="balloon">{money(sch.balloon)}</Src> remaining principal</> : 'All principal'} plus any accrued interest{a.successFee > 0 ? ' and the success fee' : ''}</td></tr>
             <tr><th>Origination fee</th><td>{has(deal.originationFee) ? <><Src r="originationFee">{num(deal.originationFee)}%</Src> (<Src c="fee">{money(a.fee)}</Src>)</> : 'None'}</td></tr>
             <tr><th>Success fee</th><td>{a.successFee > 0 ? <><Src r="successFeePct">{num(deal.successFeePct)}%</Src> (<Src c="successFee">{money(a.successFee)}</Src>) at final payoff / maturity</> : 'None'}</td></tr>
             <tr><th>Primary repayment source</th><td>{has(deal.primaryRepayment) ? deal.primaryRepayment : (deal.repaymentOptions?.[0]?.option || <Missing what="Primary repayment source" />)}</td></tr>
@@ -518,6 +624,7 @@ function MemoDoc({ deal }) {
           Total owed to {fund} over the term is <Src c="totalOwed">{money(a.totalOwed)}</Src> (principal plus interest).
           {a.repaymentCoverage !== null ? <> The borrower’s primary repayment source is expected to produce <Src r="exitProceeds">{money(a.exitProceeds)}</Src>, or <Src c="repaymentCoverage">{a.repaymentCoverage.toFixed(2)}x</Src> coverage.</> : ''}
         </p>
+        <h3 className="sub">Sources of Repayment</h3>
         <p>To support principal repayment of the {fund} loan, the following resources are expected to be available:</p>
         {deal.repaymentOptions?.length ? (
           <ol>{deal.repaymentOptions.map((r, i) => <li key={i} data-fact="repay">{r.option}</li>)}</ol>
@@ -569,16 +676,19 @@ function MemoDoc({ deal }) {
             <tr><th>Total project cost</th><td>{a.projectCost ? <Src c="projectCost">{money(a.projectCost)}</Src> : '–'}</td></tr>
             <tr><th>Loan term</th><td>{has(deal.termMonths) ? `${a.term} months` : '–'}</td></tr>
             <tr className="grp"><th colSpan={2}>Real estate metrics</th></tr>
-            <tr><th>Type of real estate</th><td>{deal.assetType || '–'}</td></tr>
+            <tr><th>Project type</th><td>{deal.projectType || '–'}</td></tr>
+            <tr><th>Description</th><td>{deal.assetType || '–'}</td></tr>
             <tr><th>New construction / rehab</th><td>{deal.constructionType || '–'}</td></tr>
             <tr><th>Previously vacant / blighted</th><td>{deal.previouslyVacant || '–'}</td></tr>
             <tr><th>Sq. ft. commercial</th><td>{has(deal.commercialSqFt) ? sqft(deal.commercialSqFt) : '–'}</td></tr>
             <tr><th>Sq. ft. total</th><td>{num(deal.squareFeet) ? sqft(deal.squareFeet) : '–'}</td></tr>
             <tr><th>Residential units for rent</th><td>{has(deal.residentialUnits) ? num(deal.residentialUnits) : '–'}</td></tr>
-            <tr><th>Affordable units</th><td>{has(deal.affordableUnits) ? <>{num(deal.affordableUnits)}{a.affordablePct !== null ? <> (<Src c="affordablePct">{pct(a.affordablePct, 0)}</Src>)</> : ''}</> : '–'}</td></tr>
+            <tr><th>Affordable units</th><td>{a.affordableCount !== null ? <>{a.affordableCount}{a.affordablePct !== null ? <> (<Src c="affordablePct">{pct(a.affordablePct, 0)}</Src>)</> : ''}{tierText ? `: ${tierText}` : amiText ? ` at ${amiText} AMI` : ''}</> : '–'}</td></tr>
+            <tr><th>Who the project serves</th><td>{deal.targetPopulation || '–'}</td></tr>
             <tr className="grp"><th colSpan={2}>Impact metrics</th></tr>
             <tr><th>Jobs, construction</th><td>{has(deal.constructionJobs) ? num(deal.constructionJobs) : '–'}</td></tr>
             <tr><th>Jobs, permanent (new / supported)</th><td>{has(deal.jobsCreated) ? num(deal.jobsCreated) : '–'}</td></tr>
+            <tr><th>Borrower stage</th><td>{a.stage || (a.stageSuggested ? `${a.stageSuggested} (suggested)` : '–')}</td></tr>
             <tr><th>BIPOC-owned firm</th><td>{deal.bipocOwned || '–'}</td></tr>
             <tr><th>In a neighborhood impact area</th><td>{deal.impactArea || '–'}</td></tr>
           </tbody>

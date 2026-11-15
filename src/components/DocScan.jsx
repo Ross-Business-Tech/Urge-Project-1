@@ -130,7 +130,7 @@ export default function DocScan({ deal, onApply }) {
         <button type="button" className="icon-btn" aria-label="Close" onClick={() => { setOpen(false); reset(); }}>×</button>
       </div>
       <p className="small">
-        Add the borrower’s files: loan application, term sheet, budget, pro forma, financial statements, bios. Add as many as you have.
+        Add the deal’s files: term sheet, underwriting model (Excel), loan application, budget, pro forma, financial statements, bios. Add as many as you have.
         The AI reads them all and suggests values for the Deal data form. You review every value, with a quote from the file, before anything is filled in.
       </p>
 

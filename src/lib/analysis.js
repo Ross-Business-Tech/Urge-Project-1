@@ -1,4 +1,15 @@
 import { num, has, money, pct, sum } from './format.js';
+import { neighborhoodImpact } from './impact.js';
+
+export const STAGES = ['Early-emerging', 'Emerging', 'Established'];
+// Suggested borrower stage from the track record, used when the underwriter hasn't picked one.
+export function suggestStage(deal) {
+  if (!has(deal.yearsExperience) && !has(deal.projectsCompleted)) return '';
+  const y = num(deal.yearsExperience), p = num(deal.projectsCompleted);
+  if (y < 3 || (has(deal.projectsCompleted) && p < 2)) return 'Early-emerging';
+  if (y < 10 && p < 10) return 'Emerging';
+  return 'Established';
+}
 
 const LEVEL_RANK = { green: 0, yellow: 1, red: 2 };
 const worst = (levels) =>
@@ -156,8 +167,19 @@ export function analyze(deal) {
 
   // --- Mission alignment
   const mission = [];
-  mission.push({ label: 'B.I.P.O.C.-owned firm', level: deal.bipocOwned === 'Yes' ? 'green' : deal.bipocOwned === 'No' ? 'yellow' : 'yellow',
-    text: deal.bipocOwned === 'Yes' ? `${deal.firmName || 'The firm'} is BIPOC-owned.` : deal.bipocOwned === 'No' ? 'The firm is not BIPOC-owned.' : 'Ownership demographics not provided.' });
+  // Borrower stage (Emerging / Early-emerging / Established). If no stage was picked, the older
+  // BIPOC-owned answer decides this criterion, so earlier deals rate the same as before.
+  const stage = has(deal.developerStage) ? deal.developerStage : '';
+  const stageSuggested = suggestStage(deal);
+  const who = deal.firmName || 'The firm';
+  if (stage) {
+    const fit = ['Emerging', 'Early-emerging'].includes(stage);
+    mission.push({ label: 'Emerging developer', level: fit ? 'green' : 'yellow',
+      text: fit ? `${who} is an ${stage.toLowerCase()} developer; this project is a step up in scale for the firm.` : `${who} is an established developer.` });
+  } else {
+    mission.push({ label: 'Emerging developer', level: deal.bipocOwned === 'Yes' ? 'green' : 'yellow',
+      text: `Borrower stage not selected${stageSuggested ? ` (track record suggests ${stageSuggested.toLowerCase()})` : ''}.` });
+  }
   mission.push({ label: 'Potential scale / acceleration', level: has(deal.growthPlan) ? 'green' : 'yellow',
     text: has(deal.growthPlan) ? deal.growthPlan : 'Growth plan not provided.' });
   const jobs = num(deal.jobsCreated);
@@ -181,6 +203,7 @@ export function analyze(deal) {
   const aggregateCoverage = totalObligations > 0 && exitProceeds > 0 ? exitProceeds / totalObligations : null;
   const ioMonths = num(deal.interestOnlyMonths);
   const amortStartMonth = has(deal.amortizationYears) && ioMonths > 0 && ioMonths < term ? ioMonths + 1 : null;
+  // (schedule.* below covers every repayment structure)
   const proj = (deal.projectProjections || []).filter((r) => has(r.year)).map((r) => {
     const noi = num(r.revenue) - num(r.expenses);
     const ds = num(r.debtService);
@@ -192,7 +215,26 @@ export function analyze(deal) {
   const firstDscr = projDscrs.length ? projDscrs[0] : null;
   const lastDscr = projDscrs.length ? projDscrs[projDscrs.length - 1] : null;
   const resUnits = num(deal.residentialUnits);
-  const affordablePct = resUnits > 0 && has(deal.affordableUnits) ? num(deal.affordableUnits) / resUnits : null;
+  const tiers = (deal.affordableTiers || []).filter((t) => num(t.units) > 0).map((t) => ({ units: num(t.units), ami: num(t.ami) }));
+  const affordableCount = tiers.length ? tiers.reduce((t, x) => t + x.units, 0) : has(deal.affordableUnits) ? num(deal.affordableUnits) : null;
+  const affordablePct = resUnits > 0 && affordableCount !== null ? affordableCount / resUnits : null;
+
+  // Payment schedule (informational; the ratings above keep using principal + interest-only interest).
+  const structure = String(deal.repaymentStructure || '');
+  const fullyAmortizing = /fully amortizing|^monthly amortizing/i.test(structure);
+  const ioThenAmort = /then amortiz/i.test(structure);
+  const ioEff = fullyAmortizing ? 0 : has(deal.interestOnlyMonths) ? num(deal.interestOnlyMonths) : /^interest-only, principal/i.test(structure) ? term : 0;
+  const amortYears = has(deal.amortizationYears) ? num(deal.amortizationYears) : fullyAmortizing ? term / 12 : 0;
+  const monthlyRate = rate / 12;
+  const monthlyIoPayment = loan > 0 && rate > 0 && ioEff > 0 ? loan * monthlyRate : null;
+  const amortN = amortYears * 12;
+  const amortPayment = loan > 0 && amortN > 0 && (fullyAmortizing || ioThenAmort || has(deal.amortizationYears)) && ioEff < term
+    ? (monthlyRate > 0 ? (loan * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -amortN)) : loan / amortN) : null;
+  const amortMonthsPaid = amortPayment !== null ? Math.max(0, Math.min(term - ioEff, amortN)) : 0;
+  const balloon = amortPayment !== null
+    ? (monthlyRate > 0 ? loan * Math.pow(1 + monthlyRate, amortMonthsPaid) - amortPayment * ((Math.pow(1 + monthlyRate, amortMonthsPaid) - 1) / monthlyRate) : loan - amortPayment * amortMonthsPaid)
+    : loan;
+  const schedule = { ioMonths: ioEff, amortYears, monthlyIoPayment, amortPayment, amortStart: amortPayment !== null ? ioEff + 1 : null, balloon: Math.max(0, balloon) };
   const sqft = num(deal.squareFeet);
   const costPerSf = sqft > 0 && useTotal > 0 ? useTotal / sqft : null;
   const useCostPerSf = sqft > 0 ? (deal.projectUses || []).map((r) => num(r.amount) / sqft) : [];
@@ -232,5 +274,7 @@ export function analyze(deal) {
     successFee, totalObligations, aggregateCoverage, ioMonths, amortStartMonth,
     proj, projNoi, minDscr, firstDscr, lastDscr, affordablePct, costPerSf, useCostPerSf,
     collateralRent, collateralValue, collateralCoverage,
+    stage, stageSuggested, tiers, affordableCount, schedule,
+    impact: neighborhoodImpact(deal, projectCost),
   };
 }
