@@ -13,7 +13,6 @@ export const emptyDeal = {
   yearsExperience: '',
   projectsCompleted: '',
   developerStage: '',
-  bipocOwned: '',
   sponsors: '',
   principalBio: '',
   loanAmount: '',
@@ -98,7 +97,6 @@ export const sampleDeal = {
   yearsExperience: '9',
   projectsCompleted: '6',
   developerStage: 'Emerging',
-  bipocOwned: 'Yes',
   sponsors: 'Jordan Avery (personal guarantor)',
   principalBio:
     'Jordan Avery spent six years as a project manager at a regional general contractor before founding Northbrook in 2019. The firm has completed six small commercial and mixed-use projects totaling roughly 48,000 sq ft, all on or under budget.',

@@ -167,8 +167,8 @@ export function analyze(deal) {
 
   // --- Mission alignment
   const mission = [];
-  // Borrower stage (Emerging / Early-emerging / Established). If no stage was picked, the older
-  // BIPOC-owned answer decides this criterion, so earlier deals rate the same as before.
+  // Borrower stage (Emerging / Early-emerging / Established). If no stage was picked, the stage
+  // suggested from the track record is used.
   const stage = has(deal.developerStage) ? deal.developerStage : '';
   const stageSuggested = suggestStage(deal);
   const who = deal.firmName || 'The firm';
@@ -177,8 +177,9 @@ export function analyze(deal) {
     mission.push({ label: 'Emerging developer', level: fit ? 'green' : 'yellow',
       text: fit ? `${who} is an ${stage.toLowerCase()} developer; this project is a step up in scale for the firm.` : `${who} is an established developer.` });
   } else {
-    mission.push({ label: 'Emerging developer', level: deal.bipocOwned === 'Yes' ? 'green' : 'yellow',
-      text: `Borrower stage not selected${stageSuggested ? ` (track record suggests ${stageSuggested.toLowerCase()})` : ''}.` });
+    const fit = ['Emerging', 'Early-emerging'].includes(stageSuggested);
+    mission.push({ label: 'Emerging developer', level: fit ? 'green' : 'yellow',
+      text: stageSuggested ? `Borrower stage not selected; the track record suggests ${/^[aeiou]/i.test(stageSuggested) ? 'an' : 'a'} ${stageSuggested.toLowerCase()} developer.` : 'Borrower stage not provided.' });
   }
   mission.push({ label: 'Potential scale / acceleration', level: has(deal.growthPlan) ? 'green' : 'yellow',
     text: has(deal.growthPlan) ? deal.growthPlan : 'Growth plan not provided.' });

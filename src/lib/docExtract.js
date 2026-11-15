@@ -20,7 +20,6 @@ const NUMBER = new Set([
 ]);
 const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year', 'expenses', 'debtService', 'annualRent', 'marketValue', 'units', 'ami']);
 const CHOICES = {
-  bipocOwned: ['Yes', 'No'],
   impactArea: ['Yes', 'No'],
   interestReserve: ['Yes', 'No'],
   siteControl: ['Yes', 'No'],

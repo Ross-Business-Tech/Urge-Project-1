@@ -163,7 +163,6 @@ export default function DealForm({ deal, set }) {
         <Field {...p} name="projectsCompleted" label="Projects completed" type="number" />
         <Field {...p} name="developerStage" label="Borrower stage" options={['', ...STAGES]}
           hint={suggestStage(deal) ? `Track record suggests: ${suggestStage(deal)}${deal.developerStage && deal.developerStage !== suggestStage(deal) ? ' (you picked differently, which is fine)' : ''}` : 'Emerging, early-emerging or established developer.'} />
-        <Field {...p} name="bipocOwned" label="BIPOC-owned firm? (metric sheet only)" options={YES_NO} />
         <Field {...p} name="sponsors" label="Sponsors / guarantors" />
         <Field {...p} name="principalBio" label="Principal bio / background" type="textarea" hint="Paste from the borrower’s submission. Cross-check against public sources." />
         <Field {...p} name="orgStructure" label="Organizational structure" type="textarea" hint="Who owns what, and which entity receives the money." />

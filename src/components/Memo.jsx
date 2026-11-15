@@ -689,7 +689,6 @@ function MemoDoc({ deal }) {
             <tr><th>Jobs, construction</th><td>{has(deal.constructionJobs) ? num(deal.constructionJobs) : '–'}</td></tr>
             <tr><th>Jobs, permanent (new / supported)</th><td>{has(deal.jobsCreated) ? num(deal.jobsCreated) : '–'}</td></tr>
             <tr><th>Borrower stage</th><td>{a.stage || (a.stageSuggested ? `${a.stageSuggested} (suggested)` : '–')}</td></tr>
-            <tr><th>BIPOC-owned firm</th><td>{deal.bipocOwned || '–'}</td></tr>
             <tr><th>In a neighborhood impact area</th><td>{deal.impactArea || '–'}</td></tr>
           </tbody>
         </table>

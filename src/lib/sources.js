@@ -14,7 +14,7 @@ export const FIELDS = {
   fundName: ['Fund name', 1], fundTagline: ['Fund tagline', 1], memoDate: ['Memo date', 1], relationshipManager: ['Relationship manager', 1],
   preparedBy: ['Underwriter', 1], committee: ['Investment committee', 1],
   firmName: ['Borrower firm name', 2], hqCity: ['Firm location', 2], principalName: ['Principal name', 2], principalTitle: ['Principal title', 2],
-  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], developerStage: ['Borrower stage', 2], bipocOwned: ['BIPOC-owned firm?', 2],
+  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], developerStage: ['Borrower stage', 2],
   sponsors: ['Sponsors / guarantors', 2], principalBio: ['Principal bio / background', 2], orgStructure: ['Organizational structure', 2],
   loanAmount: ['Loan amount', 3], interestRate: ['Interest rate', 3], termMonths: ['Term (months)', 3], originationFee: ['Origination fee', 3],
   repaymentStructure: ['Repayment structure', 3], interestOnlyMonths: ['Interest-only period (months)', 3], amortizationYears: ['Amortization after interest-only (years)', 3],

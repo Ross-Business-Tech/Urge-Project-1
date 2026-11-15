@@ -17,7 +17,7 @@ export const NUMERIC_FIELDS = {
 // Every field the memo can show, with a plain-English label (used to say which fields are blank)
 export const FIELD_LABELS = {
   committee: 'Investment committee', preparedBy: 'Prepared by', memoDate: 'Memo date', firmName: 'Borrower firm name', principalName: 'Principal name',
-  principalTitle: 'Principal title', hqCity: 'Firm location', principalBio: 'Principal bio', bipocOwned: 'BIPOC-owned answer', orgStructure: 'Organizational structure',
+  principalTitle: 'Principal title', hqCity: 'Firm location', principalBio: 'Principal bio', orgStructure: 'Organizational structure',
   loanPurpose: 'Reason for loan', collateral: 'Collateral', projectName: 'Project name', projectAddress: 'Project address', assetType: 'Property type',
   neighborhood: 'Neighborhood description', impactArea: 'Impact-area answer', urgeUses: 'How the loan will be used', projectSources: 'Project sources',
   projectUses: 'Project uses', financials: 'Firm financials', repaymentOptions: 'Repayment options', team: 'Development team', ...NUMERIC_FIELDS,
@@ -48,7 +48,7 @@ export function checkAtypical(deal) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(deal.memoDate) || Number.isNaN(d.getTime())) add('Data quality', 'fail', `Memo date is not a valid date: "${deal.memoDate}"`);
     else if (d.getFullYear() < A.memoYearRange[0] || d.getFullYear() > A.memoYearRange[1]) add('Atypical', 'warn', `Memo date looks off: ${deal.memoDate}`, `Expected a year between ${A.memoYearRange[0]} and ${A.memoYearRange[1]}.`);
   }
-  for (const k of ['bipocOwned', 'impactArea', 'interestReserve', 'siteControl', 'previouslyVacant']) if (has(deal[k]) && !['Yes', 'No'].includes(deal[k])) add('Data quality', 'warn', `${labelOf(k)} is "${deal[k]}", not Yes or No`, 'The rating rules only understand Yes or No.');
+  for (const k of ['impactArea', 'interestReserve', 'siteControl', 'previouslyVacant']) if (has(deal[k]) && !['Yes', 'No'].includes(deal[k])) add('Data quality', 'warn', `${labelOf(k)} is "${deal[k]}", not Yes or No`, 'The rating rules only understand Yes or No.');
 
   // --- Blanks (beyond the required fields, which are reported separately)
   const required = ['firmName', 'principalName', 'loanAmount', 'interestRate', 'termMonths', 'loanPurpose', 'projectName', 'totalProjectCost', 'exitProceeds'];

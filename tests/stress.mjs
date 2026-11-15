@@ -205,7 +205,7 @@ const worse = {
   'less cash': { cash: '5000' },
   'smaller repayment proceeds': { exitProceeds: '600000' },
   'less experience': { yearsExperience: '2', projectsCompleted: '1' },
-  'no mission signals': { bipocOwned: 'No', growthPlan: '', jobsCreated: '0', impactArea: 'No' },
+  'no mission signals': { developerStage: 'Established', growthPlan: '', jobsCreated: '0', impactArea: 'No' },
   'higher interest rate': { interestRate: '20' },
 };
 for (const [name, patch] of Object.entries(worse)) {
@@ -261,7 +261,7 @@ test('worsening a random deal never improves a rating', () => {
     (d) => { d.exitProceeds = String(Math.round(Number(d.exitProceeds) * 0.6)); },
     (d) => { d.yearsExperience = String(Math.max(0, Number(d.yearsExperience) - 5)); },
     (d) => { d.interestRate = String(Number(d.interestRate) + 6); },
-    (d) => { d.bipocOwned = 'No'; d.impactArea = 'No'; d.growthPlan = ''; d.jobsCreated = '0'; },
+    (d) => { d.developerStage = 'Established'; d.impactArea = 'No'; d.growthPlan = ''; d.jobsCreated = '0'; },
   ];
   let bad = 0, first = '';
   for (const r of clean.slice(0, Math.min(COUNT, 200))) {
