@@ -260,8 +260,8 @@ export default function App() {
           </div>
         </div>
         <nav className="tabs" role="tablist">
-          <button role="tab" aria-selected={tab === 'data'} className={tab === 'data' ? 'on' : ''} onClick={() => setTab('data')}>1. Deal data</button>
-          <button role="tab" aria-selected={tab === 'memo'} className={tab === 'memo' ? 'on' : ''} onClick={() => (generated ? setTab('memo') : generate())}>2. Memo draft</button>
+          <button role="tab" aria-selected={tab === 'data'} className={tab === 'data' ? 'on' : ''} onClick={() => setTab('data')}>Deal data</button>
+          <button role="tab" aria-selected={tab === 'memo'} className={tab === 'memo' ? 'on' : ''} onClick={() => (generated ? setTab('memo') : generate())}>Memo draft</button>
         </nav>
       </header>
 
@@ -269,7 +269,7 @@ export default function App() {
 
       <main hidden={tab !== 'data'} className="no-print">
         <section className="intro">
-          <h1>Turn the underwriting model into a first-draft memo</h1>
+          <h1>From underwriting model to first‑draft memo.</h1>
           <p>Scan the borrower’s documents with AI, upload the deal spreadsheet, or type the numbers in. The memo follows the committee template, adds charts, and flags red and yellow items to check.</p>
           <div className="actions">
             <DocScan deal={deal} onApply={applyScan} />
