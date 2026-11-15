@@ -10,13 +10,13 @@ import { aiError } from './news.js';
 const MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-sonnet-4.5'];
 
 // The news check fills news items; the memo-writer fills these by hand.
-const SKIP = new Set(['news', 'newsSummary', 'newsCheckedAt', 'fundName', 'fundTagline', 'memoDate', 'relationshipManager', 'preparedBy', 'committee', 'underwriterNotes', 'approvers', 'taNeeds', 'risks', 'customSections', 'rentHaircutPct', 'underwrittenVacancyPct', 'underwritingNote']);
+const SKIP = new Set(['news', 'newsSummary', 'newsCheckedAt', 'fundName', 'fundTagline', 'memoDate', 'relationshipManager', 'preparedBy', 'committee', 'underwriterNotes', 'approvers', 'taNeeds', 'risks', 'customSections', 'loanSizingParagraph', 'areaMedianIncome', 'rentHaircutPct', 'underwrittenVacancyPct', 'underwritingNote']);
 
 const NUMBER = new Set([
   'yearsExperience', 'projectsCompleted', 'loanAmount', 'interestRate', 'termMonths', 'originationFee', 'squareFeet',
   'totalProjectCost', 'walkScore', 'jobsCreated', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash',
   'ownerSharePct', 'exitProceeds', 'exitMonth', 'interestOnlyMonths', 'amortizationYears', 'successFeePct', 'residentialUnits',
-  'affordableUnits', 'amiPct', 'propertyTaxRatePct', 'commercialSqFt', 'constructionJobs', 'borrowerVacancyPct', 'guarantorDscr',
+  'affordableUnits', 'amiPct', 'propertyTaxRatePct', 'tdcCompleted', 'unitsCompleted', 'commercialSqFtCompleted', 'sqFtCompleted', 'commercialSqFt', 'constructionJobs', 'borrowerVacancyPct', 'guarantorDscr',
 ]);
 const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year', 'expenses', 'debtService', 'annualRent', 'marketValue', 'units', 'ami']);
 const CHOICES = {
@@ -26,7 +26,7 @@ const CHOICES = {
   previouslyVacant: ['Yes', 'No'],
   constructionType: ['New construction', 'Rehab', 'Both'],
   developerStage: ['Early-emerging', 'Emerging', 'Established'],
-  projectType: ['Multifamily residential', 'Multifamily mixed-use', 'Hotel / hospitality', 'Office', 'Co-working space', 'Other'],
+  projectType: ['Multifamily residential', 'Multifamily mixed-use', 'Commercial', 'Hotel / hospitality', 'Office', 'Co-working space', 'Other'],
   repaymentStructure: ['Interest-only, principal due at maturity', 'Interest-only period, then amortizing', 'Fully amortizing', 'Accrued interest, all due at maturity'],
 };
 const COL_CHOICES = { financials: { type: ['Actual', 'Projected'] } };
@@ -41,7 +41,10 @@ const HINTS = {
   projectProjections: 'the PROJECT’s yearly revenue, operating expenses and debt service from the pro forma',
   collateralProperties: 'properties pledged as collateral, with annual rent and market value',
   affordableTiers: 'affordable units grouped by income level: number of units and % of area median income (AMI)',
-  developerStage: 'Early-emerging (very new), Emerging (growing, smaller past projects) or Established (long, large track record)',
+  developerStage: 'Early-emerging (under $1M of development completed), Emerging ($1M-$10M, e.g. small multifamily) or Established ($10M+)',
+  tdcCompleted: 'total development cost of all projects the borrower has completed, in dollars',
+  collateral: 'liens and pledged property only (not guarantees)', guarantee: 'who personally or corporately guarantees the loan',
+  projectTypeOther: 'only when projectType is Other',
   targetPopulation: 'who the project is meant to serve (residents, community)',
   interestOnlyMonths: 'from the term sheet', amortizationYears: 'from the term sheet', successFeePct: 'from the term sheet',
   guarantorDscr: 'debt service coverage of the guarantor’s existing portfolio, e.g. 1.4', team: 'developer, architect, contractor, etc.',

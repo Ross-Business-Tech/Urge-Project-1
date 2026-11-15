@@ -16,6 +16,10 @@ export const IMPACT_ASSUMPTIONS = {
   propertyTaxPct: [1.5, 3.0],
   // Every year: what each occupied household spends at local businesses.
   householdLocalSpend: [12000, 20000],
+  // When the area median income (AMI) is entered: household income by AMI bin, and the share of
+  // income spent at local businesses. Market-rate units are assumed to house households at 80-120% AMI.
+  marketRateAmiPct: [80, 120],
+  localSpendShareOfIncomePct: [25, 35],
   residentialOccupancyPct: 93,
   // Every year: sales by the businesses in the commercial space, per occupied sq ft.
   commercialSalesPerSqFt: [150, 300],
@@ -56,10 +60,28 @@ export function neighborhoodImpact(deal, projectCost) {
       `${A.taxYears} years of the yearly property taxes above (before any abatement)`, `${A.taxYears}-year total`);
   }
   if (units > 0) {
-    const households = units * (A.residentialOccupancyPct / 100);
-    add('householdSpend', 'Resident spending at local businesses', '$',
-      range(households * A.householdLocalSpend[0], households * A.householdLocalSpend[1]),
-      `${units} units × ${A.residentialOccupancyPct}% occupied × $${A.householdLocalSpend[0].toLocaleString()}–$${A.householdLocalSpend[1].toLocaleString()} per household`, 'per year');
+    const occ = A.residentialOccupancyPct / 100;
+    const ami = num(deal.areaMedianIncome);
+    const tiers = (deal.affordableTiers || []).filter((t) => num(t.units) > 0).map((t) => ({ units: num(t.units), ami: num(t.ami) }));
+    if (ami > 0) {
+      // Spending power by AMI bin: each bin's households earn (AMI x bin %), and spend part of it locally.
+      const affordable = tiers.reduce((t, x) => t + x.units, 0);
+      const market = Math.max(0, units - affordable);
+      const binIncome = tiers.reduce((t, x) => t + x.units * ami * (x.ami / 100), 0);
+      const incomeLow = binIncome + market * ami * (A.marketRateAmiPct[0] / 100);
+      const incomeHigh = binIncome + market * ami * (A.marketRateAmiPct[1] / 100);
+      const share = A.localSpendShareOfIncomePct;
+      const bins = tiers.map((t) => `${t.units} unit${t.units === 1 ? "" : "s"} at ${t.ami}% AMI`).join(', ');
+      add('householdIncome', 'Household income of residents', '$', range(incomeLow * occ, incomeHigh * occ),
+        `${bins ? bins + ', ' : ''}${market} market-rate unit${market === 1 ? '' : 's'} at ${A.marketRateAmiPct[0]}%–${A.marketRateAmiPct[1]}% AMI; AMI $${ami.toLocaleString()}; ${A.residentialOccupancyPct}% occupied`, 'per year');
+      add('householdSpend', 'Resident spending at local businesses', '$', range((incomeLow * occ * share[0]) / 100, (incomeHigh * occ * share[1]) / 100),
+        `${share[0]}%–${share[1]}% of residents’ household income spent at local businesses`, 'per year');
+    } else {
+      const households = units * occ;
+      add('householdSpend', 'Resident spending at local businesses', '$',
+        range(households * A.householdLocalSpend[0], households * A.householdLocalSpend[1]),
+        `${units} units × ${A.residentialOccupancyPct}% occupied × $${A.householdLocalSpend[0].toLocaleString()}–$${A.householdLocalSpend[1].toLocaleString()} per household (enter the area median income for a more precise estimate)`, 'per year');
+    }
   }
   if (commercial > 0) {
     const occupied = commercial * (A.commercialOccupancyPct / 100);

@@ -3,6 +3,7 @@ import { searchNews, searchNewsFree, manualSearches } from '../lib/news.js';
 import { analyze, suggestStage, STAGES } from '../lib/analysis.js';
 import { moneyShort } from '../lib/format.js';
 import { POSITIONS, positionLabel } from '../lib/sections.js';
+import { describeArea, loanSizingParagraph } from '../lib/aiWrite.js';
 
 const YES_NO = ['', 'Yes', 'No'];
 
@@ -121,8 +122,66 @@ const amountCols = [
 ];
 
 const YES_NO_BOTH = ['', 'New construction', 'Rehab', 'Both'];
-const PROJECT_TYPES = ['', 'Multifamily residential', 'Multifamily mixed-use', 'Hotel / hospitality', 'Office', 'Co-working space', 'Other'];
+const PROJECT_TYPES = ['', 'Multifamily residential', 'Multifamily mixed-use', 'Commercial', 'Hotel / hospitality', 'Office', 'Co-working space', 'Other'];
+
+// The (i) next to each section heading: hover (or tap on a phone) to see what the section is for.
+const SECTION_HELP = {
+  1: 'Who the memo is from and to: fund name, date, relationship manager, underwriter and the committee. Appears in the memo header.',
+  2: 'The borrower firm and its principal: experience, track record (development costs, units and square feet completed) and stage. Stage guide: Early-emerging = under $1M of development completed; Emerging = $1M to $10M (e.g. small multifamily); Established = $10M+.',
+  3: 'What the borrower is asking the fund for: amount, rate, term, repayment structure (e.g. 24 months interest-only, then amortizing), fees, collateral and guarantee. Usually from the term sheet.',
+  4: 'The project itself: type, location, total project size, residential units, affordable units by AMI level, commercial space, who it serves, what is around the site, and its sources and uses of funds.',
+  5: 'The borrower firm’s own results: revenue and net income by year (actual and projected) and its balance sheet. Used for leverage and cash checks.',
+  6: 'The project’s cash flow as underwritten: revenue, operating expenses and debt service by year, plus any cuts made to the borrower’s rent or vacancy assumptions.',
+  7: 'How the loan gets repaid and why this amount: expected proceeds, ranked repayment options, guarantor and collateral properties, and the loan sizing points the memo turns into a paragraph.',
+  8: 'Risks with their mitigants, technical assistance the borrower may need, and who signs off (approval lines).',
+  9: 'Searches the news for the borrower, principal, project and street. Red and yellow items become flags in the memo.',
+  10: 'Everyone on the project team (architect, contractor, etc.) with a short bio. Bios go in Exhibit A.',
+  11: 'Estimates the project’s impact on the neighborhood (economic activity, jobs, taxes, resident spending) as ranges, from this deal’s own numbers.',
+  12: 'Add your own sections to the memo, either for just this memo or for all future memos on this device.',
+};
+function Legend({ n, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <legend>
+      {n}. {children}
+      <button type="button" className="info-tip" aria-label={`What is section ${n} for?`} aria-expanded={open} title={SECTION_HELP[n]}
+        onClick={() => setOpen((o) => !o)} onBlur={() => setOpen(false)}>i</button>
+      {open && <span className="info-pop" role="tooltip">{SECTION_HELP[n]}</span>}
+    </legend>
+  );
+}
+
+// Small AI button that writes into a text field.
+function AiButton({ label, run, onText, confirmReplace }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const go = async () => {
+    if (confirmReplace && !confirm(confirmReplace)) return;
+    setBusy(true); setErr('');
+    try { onText(await run()); } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="ai-btn field wide">
+      <div><button type="button" className="btn ghost" onClick={go} disabled={busy}>{busy ? 'Working… (up to a minute)' : label}</button></div>
+      {err && <p className="news-error" role="alert">{err}</p>}
+    </div>
+  );
+}
 const REPAYMENT = ['Interest-only, principal due at maturity', 'Interest-only period, then amortizing', 'Fully amortizing', 'Accrued interest, all due at maturity'];
+
+// Shows the affordable units as shares of all residential units, e.g. "3 at 80% AMI (17%)".
+function AffordableSummary({ deal }) {
+  const total = Number(String(deal.residentialUnits || '').replace(/[^0-9.]/g, '')) || 0;
+  const tiers = (deal.affordableTiers || []).filter((t) => Number(t.units) > 0);
+  if (!tiers.length) return null;
+  const sum = tiers.reduce((t, x) => t + Number(x.units), 0);
+  const share = (n) => (total ? ` (${Math.round((n / total) * 100)}%)` : '');
+  return (
+    <p className="small field wide affordable-summary">
+      {sum} of {total || '?'} units affordable{share(sum)}: {tiers.map((t) => `${t.units} at ${t.ami || '?'}% AMI${share(Number(t.units))}`).join(' · ')}
+    </p>
+  );
+}
 
 // Live preview of the neighborhood impact estimate (the same numbers go into the memo).
 function ImpactPreview({ deal }) {
@@ -230,7 +289,7 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
   return (
     <div className="form">
       <fieldset>
-        <legend>1. Memo details</legend>
+        <Legend n={1}>Memo details</Legend>
         <Field {...p} name="fundName" label="Fund name" />
         <Field {...p} name="fundTagline" label="Fund tagline" />
         <Field {...p} name="memoDate" label="Memo date" type="date" />
@@ -240,49 +299,58 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>2. Borrower</legend>
+        <Legend n={2}>Borrower</Legend>
         <Field {...p} name="firmName" label="Borrower firm name" />
         <Field {...p} name="hqCity" label="Firm location" />
         <Field {...p} name="principalName" label="Principal name" />
         <Field {...p} name="principalTitle" label="Principal title" />
         <Field {...p} name="yearsExperience" label="Years of experience" type="number" />
         <Field {...p} name="projectsCompleted" label="Projects completed" type="number" />
+        <Field {...p} name="tdcCompleted" label="Total development costs completed" type="number" prefix="$" hint="All projects the borrower has completed. Used to suggest the stage." />
+        <Field {...p} name="unitsCompleted" label="Residential units completed" type="number" />
+        <Field {...p} name="commercialSqFtCompleted" label="Commercial space completed" type="number" suffix="sq ft" />
+        <Field {...p} name="sqFtCompleted" label="Total square footage completed" type="number" suffix="sq ft" />
         <Field {...p} name="developerStage" label="Borrower stage" options={['', ...STAGES]}
-          hint={suggestStage(deal) ? `Track record suggests: ${suggestStage(deal)}${deal.developerStage && deal.developerStage !== suggestStage(deal) ? ' (you picked differently, which is fine)' : ''}` : 'Emerging, early-emerging or established developer.'} />
+          hint={suggestStage(deal) ? `Track record suggests: ${suggestStage(deal)}${deal.developerStage && deal.developerStage !== suggestStage(deal) ? ' (you picked differently, which is fine)' : ''}` : 'Early-emerging (under $1M developed), Emerging ($1M–$10M) or Established ($10M+).'} />
         <Field {...p} name="sponsors" label="Sponsors / guarantors" />
         <Field {...p} name="principalBio" label="Principal bio / background" type="textarea" hint="Paste from the borrower’s submission. Cross-check against public sources." />
         <Field {...p} name="orgStructure" label="Organizational structure" type="textarea" hint="Who owns what, and which entity receives the money." />
       </fieldset>
 
       <fieldset>
-        <legend>3. Loan request</legend>
+        <Legend n={3}>Loan request</Legend>
         <Field {...p} name="loanAmount" label="Loan amount" type="number" prefix="$" />
         <Field {...p} name="interestRate" label="Interest rate" type="number" suffix="%" />
         <Field {...p} name="termMonths" label="Term" type="number" suffix="months" />
         <Field {...p} name="originationFee" label="Origination fee" type="number" suffix="%" />
-        <Field {...p} name="repaymentStructure" label="Repayment structure" options={REPAYMENT} wide />
+        <Field deal={deal} set={(d) => set(/then amortiz/i.test(d.repaymentStructure) && !/then amortiz/i.test(deal.repaymentStructure || '')
+          ? { ...d, interestOnlyMonths: d.interestOnlyMonths || '24', amortizationYears: d.amortizationYears || '15' } : d)}
+          name="repaymentStructure" label="Repayment structure" options={REPAYMENT} wide hint="“Interest-only period, then amortizing” fills in 24 months interest-only and a 15-year amortization; change them below if needed." />
         <Field {...p} name="interestOnlyMonths" label="Interest-only period" type="number" suffix="months" hint="For “interest-only period, then amortizing”. Blank = the whole term when the loan is interest-only." />
         <Field {...p} name="amortizationYears" label="Amortize over" type="number" suffix="years" hint="For amortizing loans: the schedule principal is paid on (e.g. 15)." />
         <Field {...p} name="successFeePct" label="Success fee" type="number" suffix="% of loan" />
         <Field {...p} name="interestReserve" label="Interest reserve?" options={YES_NO} />
         <Field {...p} name="loanPurpose" label="Reason for loan" type="textarea" />
-        <Field {...p} name="collateral" label="Collateral / guarantees" type="textarea" />
+        <Field {...p} name="collateral" label="Collateral" type="textarea" hint="Liens and pledged property, e.g. second mortgage on the project, first lien on two duplexes." />
+        <Field {...p} name="guarantee" label="Guarantee" type="textarea" hint="Who guarantees the loan, e.g. full personal guarantee from the principal." />
         <RowTable {...p} name="urgeUses" label="How the loan will be used" columns={amountCols} />
       </fieldset>
 
       <fieldset>
-        <legend>4. Project</legend>
+        <Legend n={4}>Project</Legend>
         <Field {...p} name="projectName" label="Project name" />
         <Field {...p} name="projectAddress" label="Location / address" />
         <Field {...p} name="projectType" label="Project type" options={PROJECT_TYPES} />
+        {deal.projectType === 'Other' && <Field {...p} name="projectTypeOther" label="Other project type" hint="Type the project type, e.g. Senior housing, Mixed-use with childcare." />}
         <Field {...p} name="assetType" label="Project description" hint="e.g. Ground-floor retail and office, apartments above" />
-        <Field {...p} name="squareFeet" label="Total size" type="number" suffix="sq ft" />
+        <Field {...p} name="squareFeet" label="Total project size" type="number" suffix="sq ft" />
         <Field {...p} name="residentialUnits" label="Residential units" type="number" />
         <RowTable {...p} name="affordableTiers" label="Affordable units by AMI level" hint="One row per income level, e.g. 3 units at 50% AMI and 60 units at 80% AMI (AMI = area median income)."
           columns={[
             { key: 'units', label: 'Affordable units', number: true },
             { key: 'ami', label: 'At % of AMI', number: true },
           ]} />
+        <AffordableSummary deal={deal} />
         <Field {...p} name="targetPopulation" label="Who the project serves" type="textarea" hint="Target population or community, e.g. working families, seniors, local small businesses." />
         <Field {...p} name="commercialSqFt" label="Commercial space" type="number" suffix="sq ft" />
         <Field {...p} name="constructionType" label="Construction type" options={YES_NO_BOTH} />
@@ -291,8 +359,10 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
         <Field {...p} name="previouslyVacant" label="Previously vacant / blighted?" options={YES_NO} />
         <Field {...p} name="totalProjectCost" label="Total project cost" type="number" prefix="$" />
         <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Look it up at walkscore.com" />
-        <Field {...p} name="neighborhood" label="What’s around the site" type="textarea" />
-        <Field {...p} name="impactArea" label="In a neighborhood impact area?" options={YES_NO} />
+        <Field {...p} name="neighborhood" label="What’s around the site" type="textarea" hint="Type it yourself (bullets are fine) or let the AI describe nearby places, new developments and who they serve." />
+        <AiButton label="✨ Describe the area with AI" run={() => describeArea(deal)} onText={(t) => set({ ...deal, neighborhood: t })}
+          confirmReplace={deal.neighborhood?.trim() ? 'Replace what’s in “What’s around the site” with the AI’s description?' : ''} />
+        <Field {...p} name="impactArea" label="In a strategic neighborhood?" options={YES_NO} />
         <Field {...p} name="jobsCreated" label="Permanent jobs created / supported" type="number" />
         <Field {...p} name="constructionJobs" label="Construction jobs" type="number" />
         <Field {...p} name="growthPlan" label="Growth plan (scale / acceleration)" type="textarea" />
@@ -301,7 +371,7 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>5. Firm financials</legend>
+        <Legend n={5}>Firm financials</Legend>
         <RowTable {...p} name="financials" label="Revenue and net income by year" hint="Mark each year as Actual or Projected."
           columns={[
             { key: 'year', label: 'Year', flex: 0.8 },
@@ -317,7 +387,7 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>6. Project cash flow &amp; underwriting</legend>
+        <Legend n={6}>Project cash flow &amp; underwriting</Legend>
         <RowTable {...p} name="projectProjections" label="Project projections by year (as underwritten)" hint="From the underwriting model. The memo works out net operating income and DSCR."
           columns={[
             { key: 'year', label: 'Year', flex: 0.8 },
@@ -332,12 +402,16 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>7. Loan sizing &amp; repayment</legend>
+        <Legend n={7}>Loan sizing &amp; repayment</Legend>
         <Field {...p} name="exitProceeds" label="Expected proceeds to repay loan" type="number" prefix="$" hint="Cash the firm expects from the project (refinance, sale, developer fee)." />
         <Field {...p} name="exitMonth" label="Expected in month" type="number" suffix="of loan" />
         <Field {...p} name="primaryRepayment" label="Primary repayment source" />
         <Field {...p} name="secondaryRepayment" label="Secondary repayment source" />
         <RowTable {...p} name="repaymentOptions" label="Ways the fund gets repaid (in priority order)" columns={[{ key: 'option', label: 'Repayment option' }]} />
+        <RowTable {...p} name="loanSizingPoints" label="Loan sizing points" hint="One point per row: why this loan amount and structure. The memo turns them into a paragraph." columns={[{ key: 'point', label: 'Point' }]} />
+        <AiButton label="✨ Write the loan sizing paragraph with AI" run={() => loanSizingParagraph(deal)} onText={(t) => set({ ...deal, loanSizingParagraph: t })}
+          confirmReplace={deal.loanSizingParagraph?.trim() ? 'Replace the current loan sizing paragraph?' : ''} />
+        <Field {...p} name="loanSizingParagraph" label="Loan sizing paragraph (optional)" type="textarea" hint="Written by the AI button above, or type your own. If blank, the memo joins the points into a paragraph itself." />
         <Field {...p} name="guarantorName" label="Guarantor / co-borrower" />
         <Field {...p} name="guarantorDscr" label="Guarantor portfolio DSCR" type="number" suffix="x" />
         <Field {...p} name="guarantorPortfolio" label="Guarantor’s existing portfolio" type="textarea" />
@@ -350,7 +424,7 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>8. Risks, approvals &amp; exhibits</legend>
+        <Legend n={8}>Risks, approvals &amp; exhibits</Legend>
         <RowTable {...p} name="risks" label="Risks & mitigants" hint="Leave empty and the memo lists the red and yellow flags as risks for you to add mitigants to."
           columns={[
             { key: 'risk', label: 'Risk', flex: 2 },
@@ -365,7 +439,7 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>9. News check</legend>
+        <Legend n={9}>News check</Legend>
         <NewsCheck {...p} />
         <RowTable {...p} name="news" label="News items for the memo" hint="Edit, delete or add items by hand. Red and yellow items also appear in the memo’s flags."
           columns={[
@@ -380,7 +454,7 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>10. Development team</legend>
+        <Legend n={10}>Development team</Legend>
         <RowTable {...p} name="team" label="Team members" hint="Short bio goes in Exhibit A of the memo."
           columns={[
             { key: 'name', label: 'Name' },
@@ -392,13 +466,14 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
       </fieldset>
 
       <fieldset>
-        <legend>11. Neighborhood impact calculator</legend>
+        <Legend n={11}>Neighborhood impact calculator</Legend>
         <ImpactPreview deal={deal} />
+        <Field {...p} name="areaMedianIncome" label="Area median income (AMI) for the region" type="number" prefix="$" hint="From HUD’s income limits for the area. Lets the calculator estimate residents’ income and spending by AMI level." />
         <Field {...p} name="propertyTaxRatePct" label="Local property tax rate (optional)" type="number" suffix="% of cost" hint="Leave blank to use a 1.5%–3% range." />
       </fieldset>
 
       <fieldset>
-        <legend>12. Extra memo sections</legend>
+        <Legend n={12}>Extra memo sections</Legend>
         <ExtraSections {...p} templates={templates} setTemplates={setTemplates} />
       </fieldset>
     </div>

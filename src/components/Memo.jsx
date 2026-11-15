@@ -4,6 +4,7 @@ import { num, has, money, moneyShort, pct, fmtDate, or } from '../lib/format.js'
 import { BarCompare, StackedShare, Columns } from './Charts.jsx';
 import { safeUrl } from '../lib/news.js';
 import { memoExtras } from '../lib/sections.js';
+import { proseDeal } from '../lib/prose.js';
 
 // Layout follows the fund's own investment memos (EBIARA format): REQUEST, INVESTMENT MERITS with
 // colour-filled evaluation cells, key considerations, project breakdown, sources & uses, mission
@@ -26,6 +27,20 @@ const stripDot = (s) => String(s || '').trim().replace(/[.\s]+$/, '');
 const initials = (name) => String(name || '?').replace(/[^A-Za-z ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 const sameName = (x, y) => String(x || '').trim().toLowerCase() === String(y || '').trim().toLowerCase();
 const firstSentence = (t) => { const m = String(t || '').trim().match(/^.+?[.!?](\s|$)/); return (m ? m[0] : String(t || '')).trim(); };
+// "The firm has completed approximately $6,500,000 of development, including 12 residential units and 36,000 sq ft of commercial space (48,000 sq ft in total)."
+function trackRecord(d) {
+  const parts = [];
+  if (has(d.unitsCompleted)) parts.push(<><Src r="unitsCompleted">{num(d.unitsCompleted)}</Src> residential units</>);
+  if (has(d.commercialSqFtCompleted)) parts.push(<><Src r="commercialSqFtCompleted">{sqft(d.commercialSqFtCompleted)}</Src> sq ft of commercial space</>);
+  if (!has(d.tdcCompleted) && !parts.length && !has(d.sqFtCompleted)) return null;
+  return (
+    <>
+      {' '}The firm has completed {has(d.tdcCompleted) ? <>approximately <Src r="tdcCompleted">{money(d.tdcCompleted)}</Src> of total development</> : 'projects'}
+      {parts.length ? <>, including {parts.length === 2 ? <>{parts[0]} and {parts[1]}</> : parts[0]}</> : ''}
+      {has(d.sqFtCompleted) ? <> (<Src r="sqFtCompleted">{sqft(d.sqFtCompleted)}</Src> sq ft in total)</> : ''}.
+    </>
+  );
+}
 const showRange = (r) => (r.kind === '$'
   ? (Math.round(r.low) === Math.round(r.high) ? moneyShort(r.low) : `${moneyShort(r.low)} – ${moneyShort(r.high)}`)
   : (Math.round(r.low) === Math.round(r.high) ? String(Math.round(r.low)) : `${Math.round(r.low)} – ${Math.round(r.high)}`));
@@ -71,7 +86,9 @@ function AmountTable({ name, rows, total, totalLabel = 'Total', base, title = 'I
   );
 }
 
-function MemoDoc({ deal }) {
+function MemoDoc({ deal: raw }) {
+  // Free-response answers typed as bullets read as paragraphs in the memo.
+  const deal = proseDeal(raw);
   const a = analyze(deal);
   const fund = or(deal.fundName, 'the Fund');
   const firm = or(deal.firmName, 'the Borrower');
@@ -85,6 +102,9 @@ function MemoDoc({ deal }) {
   const lastProj = a.projections[a.projections.length - 1];
   const hasUnits = has(deal.residentialUnits) || has(deal.commercialSqFt);
   const sch = a.schedule;
+  const sizingPoints = (deal.loanSizingPoints || []).map((r) => String(r.point || '').trim()).filter(Boolean).map((t) => (/[.!?]$/.test(t) ? t : `${t}.`)).map((t) => t.charAt(0).toUpperCase() + t.slice(1));
+  const typeLabel = deal.projectType === 'Other' ? (deal.projectTypeOther || '').trim() : deal.projectType || '';
+  const track = trackRecord(deal);
   const extras = memoExtras(deal);
   // Sections the team added (template or this memo only), shown after the section they chose.
   const extra = (pos) => (extras[pos] || []).map((x, i) => (
@@ -144,16 +164,16 @@ function MemoDoc({ deal }) {
         <h3 className="sub">Loan Request</h3>
         <p>
           Approval of a <Src r="loanAmount">{money(a.loan)}</Src> {fund} loan facility to {firm} to support {project}
-          {has(deal.assetType) ? `, a ${lower1(deal.assetType)}` : has(deal.projectType) ? `, a ${lower1(deal.projectType)} project` : ''} located at {v(deal.projectAddress, 'Address')}. {has(deal.loanPurpose) ? `${stripDot(deal.loanPurpose)}.` : <Missing what="Loan purpose" />}
+          {has(deal.assetType) ? `, a ${lower1(deal.assetType)}` : typeLabel ? `, a ${lower1(typeLabel)} project` : ''} located at {v(deal.projectAddress, 'Address')}. {has(deal.loanPurpose) ? `${stripDot(deal.loanPurpose)}.` : <Missing what="Loan purpose" />}
           {' '}{firm} is led by {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle}` : ''}.
           {a.stage ? ` The firm is classified as ${/^[aeiou]/i.test(a.stage) ? 'an' : 'a'} ${a.stage.toLowerCase()} developer.` : ''}
         </p>
 
-        {(hasUnits || num(deal.squareFeet) || has(deal.projectType) || has(deal.targetPopulation) || has(deal.siteControl) || has(deal.constructionStart)) && (
+        {(hasUnits || num(deal.squareFeet) || typeLabel || has(deal.targetPopulation) || has(deal.siteControl) || has(deal.constructionStart)) && (
           <>
             <h3 className="sub">The Project</h3>
             <p>
-              {has(deal.projectType) ? `${project} is a ${lower1(deal.projectType)} project${has(deal.constructionType) ? ` (${lower1(deal.constructionType)})` : ''}.` : ''}
+              {typeLabel ? `${project} is a ${lower1(typeLabel)} project${has(deal.constructionType) ? ` (${lower1(deal.constructionType)})` : ''}.` : ''}
               {hasUnits && (
                 <>
                   {' '}The “Project” will include{' '}
@@ -250,7 +270,7 @@ function MemoDoc({ deal }) {
             <strong>MANAGEMENT EXPERIENCE:</strong>{' '}
             {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle},` : ','} who brings{' '}
             {has(deal.yearsExperience) ? <Src r="yearsExperience">{num(deal.yearsExperience)} years</Src> : <Missing what="Years" />} of real estate development and construction experience
-            {has(deal.projectsCompleted) ? <> and <Src r="projectsCompleted">{num(deal.projectsCompleted)} completed projects</Src></> : ''}.{a.stage ? ` The firm is classified as ${/^[aeiou]/i.test(a.stage) ? 'an' : 'a'} ${a.stage.toLowerCase()} developer.` : ''} {v(deal.principalBio, 'Principal bio')}
+            {has(deal.projectsCompleted) ? <> and <Src r="projectsCompleted">{num(deal.projectsCompleted)} completed projects</Src></> : ''}.{track}{a.stage ? ` The firm is classified as ${/^[aeiou]/i.test(a.stage) ? 'an' : 'a'} ${a.stage.toLowerCase()} developer.` : ''} {v(deal.principalBio, 'Principal bio')}
           </li>
           {has(deal.guarantorName) && (
             <li>
@@ -270,9 +290,9 @@ function MemoDoc({ deal }) {
               {a.firstDscr !== null ? <>With these assumptions the project reaches a DSCR of <Src c="dscr:0">{fx(a.firstDscr)}</Src> in {a.proj[0].year}{a.proj.length > 1 ? <>, improving to <Src c={`dscr:${a.proj.length - 1}`}>{fx(a.lastDscr)}</Src> by {a.proj[a.proj.length - 1].year}</> : ''}.</> : ''}
             </li>
           )}
-          {(has(deal.collateral) || props.length > 0) && (
+          {(has(deal.collateral) || has(deal.guarantee) || props.length > 0) && (
             <li>
-              <strong>COLLATERAL SUPPORT:</strong> {has(deal.collateral) ? `${stripDot(deal.collateral)}.` : ''}
+              <strong>COLLATERAL SUPPORT:</strong> {has(deal.collateral) ? `${stripDot(deal.collateral)}.` : ''}{has(deal.guarantee) ? ` Guarantee: ${lower1(stripDot(deal.guarantee))}.` : ''}
               {props.length > 0 && (
                 <>
                   {' '}In addition, {fund} will take a lien on the following properties:
@@ -515,6 +535,9 @@ function MemoDoc({ deal }) {
                 {(a.stage || a.stageSuggested) && <span className="chip">{a.stage || `${a.stageSuggested} (suggested)`} developer</span>}
                 {has(deal.yearsExperience) && <span className="chip">{num(deal.yearsExperience)} yrs in development</span>}
                 {has(deal.projectsCompleted) && <span className="chip">{num(deal.projectsCompleted)} projects completed</span>}
+                {has(deal.tdcCompleted) && <span className="chip"><Src r="tdcCompleted">{moneyShort(deal.tdcCompleted)}</Src> developed</span>}
+                {has(deal.unitsCompleted) && <span className="chip">{num(deal.unitsCompleted)} units completed</span>}
+                {has(deal.commercialSqFtCompleted) && <span className="chip">{sqft(deal.commercialSqFtCompleted)} commercial sq ft completed</span>}
                 {has(deal.guarantorName) && sameName(deal.guarantorName, principal) && <span className="chip">Personal guarantor</span>}
                 {has(deal.ownerSharePct) && <span className="chip">Owns {num(deal.ownerSharePct)}% of the firm</span>}
               </p>
@@ -632,6 +655,7 @@ function MemoDoc({ deal }) {
         <h2>LOAN SIZING &amp; STRUCTURING</h2>
         <p>
           Based on the project underwriting, proposed sources and uses, collateral support, and repayment capacity, {fund} recommends consideration of a <Src r="loanAmount">{money(a.loan)}</Src> loan to {firm}.
+          {has(deal.loanSizingParagraph) ? ` ${deal.loanSizingParagraph.trim()}` : sizingPoints.length ? ` ${sizingPoints.join(' ')}` : ''}
           {deal.urgeUses?.length ? ` The facility will support ${deal.urgeUses.map((u) => lower1(u.label)).join('; ')}.` : ''}
         </p>
         <h3 className="sub">Proposed Terms &amp; Payment Schedule</h3>
@@ -657,6 +681,7 @@ function MemoDoc({ deal }) {
             <tr><th>Primary repayment source</th><td>{has(deal.primaryRepayment) ? deal.primaryRepayment : (deal.repaymentOptions?.[0]?.option || <Missing what="Primary repayment source" />)}</td></tr>
             <tr><th>Secondary repayment source</th><td>{has(deal.secondaryRepayment) ? deal.secondaryRepayment : (deal.repaymentOptions?.[1]?.option || '–')}</td></tr>
             <tr><th>Collateral</th><td>{v(deal.collateral, 'Collateral')}</td></tr>
+            <tr><th>Guarantee</th><td>{has(deal.guarantee) ? deal.guarantee : <Missing what="Guarantee" />}</td></tr>
             <tr><th>Use of proceeds</th><td>{deal.urgeUses?.map((u) => u.label).join('; ') || <Missing what="Uses" />}</td></tr>
             <tr><th>Project</th><td>{project}, {v(deal.projectAddress, 'Address')}</td></tr>
           </tbody>
@@ -724,7 +749,7 @@ function MemoDoc({ deal }) {
             <tr><th>Total project cost</th><td>{a.projectCost ? <Src c="projectCost">{money(a.projectCost)}</Src> : '–'}</td></tr>
             <tr><th>Loan term</th><td>{has(deal.termMonths) ? `${a.term} months` : '–'}</td></tr>
             <tr className="grp"><th colSpan={2}>Real estate metrics</th></tr>
-            <tr><th>Project type</th><td>{deal.projectType || '–'}</td></tr>
+            <tr><th>Project type</th><td>{typeLabel || '–'}</td></tr>
             <tr><th>Description</th><td>{deal.assetType || '–'}</td></tr>
             <tr><th>New construction / rehab</th><td>{deal.constructionType || '–'}</td></tr>
             <tr><th>Previously vacant / blighted</th><td>{deal.previouslyVacant || '–'}</td></tr>
@@ -736,8 +761,10 @@ function MemoDoc({ deal }) {
             <tr className="grp"><th colSpan={2}>Impact metrics</th></tr>
             <tr><th>Jobs, construction</th><td>{has(deal.constructionJobs) ? num(deal.constructionJobs) : '–'}</td></tr>
             <tr><th>Jobs, permanent (new / supported)</th><td>{has(deal.jobsCreated) ? num(deal.jobsCreated) : '–'}</td></tr>
+            <tr><th>Development completed (total cost)</th><td>{has(deal.tdcCompleted) ? <Src r="tdcCompleted">{money(deal.tdcCompleted)}</Src> : '–'}</td></tr>
+            <tr><th>Units / commercial sq ft / total sq ft completed</th><td>{[deal.unitsCompleted, deal.commercialSqFtCompleted, deal.sqFtCompleted].some(has) ? `${has(deal.unitsCompleted) ? num(deal.unitsCompleted) : '–'} / ${has(deal.commercialSqFtCompleted) ? sqft(deal.commercialSqFtCompleted) : '–'} / ${has(deal.sqFtCompleted) ? sqft(deal.sqFtCompleted) : '–'}` : '–'}</td></tr>
             <tr><th>Borrower stage</th><td>{a.stage || (a.stageSuggested ? `${a.stageSuggested} (suggested)` : '–')}</td></tr>
-            <tr><th>In a neighborhood impact area</th><td>{deal.impactArea || '–'}</td></tr>
+            <tr><th>In a strategic neighborhood</th><td>{deal.impactArea || '–'}</td></tr>
           </tbody>
         </table>
       </section>

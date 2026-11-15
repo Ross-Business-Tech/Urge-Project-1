@@ -138,7 +138,7 @@ export function applyFacts(deal, facts) {
   }
 
   // Blank fields that were typed into the memo (the memo shows a [... to be added] placeholder until then)
-  const PLACEHOLDERS = { loanPurpose: ['Loan purpose', 'Reason for the loan'], principalBio: ['Principal bio', 'Principal bio'], projectAddress: ['Address', 'Project address'], collateral: ['Collateral', 'Collateral'],
+  const PLACEHOLDERS = { loanPurpose: ['Loan purpose', 'Reason for the loan'], principalBio: ['Principal bio', 'Principal bio'], projectAddress: ['Address', 'Project address'], collateral: ['Collateral', 'Collateral'], guarantee: ['Guarantee', 'Guarantee'],
     committee: ['Investment committee', 'Investment committee'], preparedBy: ['Underwriter', 'Prepared by'], neighborhood: ['Neighborhood description', 'Neighborhood description'], orgStructure: ['Organizational structure', 'Organizational structure'] };
   const filled = (cond, key, label) => { if (!has(d[key]) && cond) { d[key] = '(entered in the memo by hand)'; diffs.push({ label, memo: 'filled in', form: 'blank', value: null }); } };
   for (const [key, [ph, label]] of Object.entries(PLACEHOLDERS)) filled(!facts.placeholders.includes(ph), key, label);

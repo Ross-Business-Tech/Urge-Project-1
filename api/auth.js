@@ -1,12 +1,15 @@
 // One shared password for the whole site (no database). Set SITE_PASSWORD in Render's
 // Environment settings. Anyone who enters it gets a signed cookie that lasts 30 days on that
-// device. Changing SITE_PASSWORD signs everyone out. If SITE_PASSWORD is not set, the site is open.
+// device. Changing SITE_PASSWORD signs everyone out.
+// FAILS CLOSED: if SITE_PASSWORD is not set (or is too short), nobody can get in at all; every page
+// shows a "locked" notice and every /api route is refused.
 import crypto from 'node:crypto';
 
 const COOKIE = 'md_session';
 const DAYS = 30;
 const password = () => String(process.env.SITE_PASSWORD || '').trim();
-export const passwordProtected = () => Boolean(password());
+export const MIN_LENGTH = 8;
+export const passwordProtected = () => password().length >= MIN_LENGTH;
 
 // The signing key comes from the password (plus an optional SESSION_SECRET), so a new password
 // invalidates every existing cookie.
@@ -23,7 +26,7 @@ function readCookie(req) {
 }
 
 export function signedIn(req) {
-  if (!passwordProtected()) return true;
+  if (!passwordProtected()) return false; // locked until a password is set
   const [exp, sig] = readCookie(req).split('.');
   return Boolean(exp && sig && Number(exp) > Date.now() && same(sig, sign(`ok:${exp}`)));
 }
@@ -57,6 +60,7 @@ function noteFail(req) {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export function loginPage(res, { error = '', next = '/' } = {}) {
+  if (!passwordProtected()) return lockedPage(res);
   res.statusCode = error ? 401 : 200;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -87,7 +91,8 @@ export async function handleLogin(req, res, body) {
   let next = form.get('next') || '/';
   if (!next.startsWith('/') || next.startsWith('//')) next = '/';
   if (blocked(req)) return loginPage(res, { error: 'Too many wrong tries. Wait 15 minutes and try again.', next });
-  if (!passwordProtected() || same(String(form.get('password') || '').trim(), password())) {
+  if (!passwordProtected()) return lockedPage(res);
+  if (same(String(form.get('password') || '').trim(), password())) {
     fails.delete(ipOf(req));
     setSession(req, res);
     res.statusCode = 303;
@@ -96,4 +101,18 @@ export async function handleLogin(req, res, body) {
   }
   noteFail(req);
   return loginPage(res, { error: 'That password isn’t right. Try again.', next });
+}
+
+// Shown to everyone while no password is set. (Status 200 so Render's health check still passes;
+// nothing of the app is served.)
+function lockedPage(res) {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.end(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locked · Memo Drafter</title><meta name="robots" content="noindex">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f5f7;font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1d1d1f;padding:16px}
+.card{max-width:420px;background:#fff;border:1px solid #d2d2d7;border-radius:14px;padding:28px 24px}h1{font-size:20px;margin:0 0 8px}p{margin:0;color:#6e6e73;font-size:15px}</style>
+</head><body><div class="card"><h1>This site is locked</h1><p>Memo Drafter isn’t available yet. If you run this site, set a team password (SITE_PASSWORD, at least ${MIN_LENGTH} characters) in Render’s Environment settings.</p></div></body></html>`);
 }

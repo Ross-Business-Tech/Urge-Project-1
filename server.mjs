@@ -124,8 +124,8 @@ http.createServer(async (req, res) => {
   }
   if (pathname === '/logout') return logout(req, res);
   if (!signedIn(req)) {
-    if (pathname === '/api/health') return wrap(res).status(200).json({ ok: true, passwordProtected: true });
-    if (pathname.startsWith('/api/')) return wrap(res).status(401).json({ error: 'Please sign in again: reload the page and enter the team password.', code: 'login' });
+    if (pathname === '/api/health') return wrap(res).status(200).json({ ok: true, passwordProtected: passwordProtected(), locked: !passwordProtected() });
+    if (pathname.startsWith('/api/')) return wrap(res).status(401).json({ error: passwordProtected() ? 'Please sign in again: reload the page and enter the team password.' : 'This site is locked until a team password is set.', code: 'login' });
     return loginPage(res, { next: req.method === 'GET' ? req.url : '/' });
   }
 
@@ -135,5 +135,5 @@ http.createServer(async (req, res) => {
   if (route) return handleApi(req, res, route);
   return serveStatic(req, res);
 }).listen(PORT, () => {
-  console.log(`Memo Drafter running on port ${PORT}${passwordProtected() ? ' (password protected)' : ' (no SITE_PASSWORD: site is open to anyone with the link)'}${aiConfig().key ? ` (AI: ${aiConfig().provider})` : ' (OPENROUTER_API_KEY not set: AI features are off)'}`);
+  console.log(`Memo Drafter running on port ${PORT}${passwordProtected() ? ' (password protected)' : ' (LOCKED: set SITE_PASSWORD, at least 8 characters, to let the team in)'}${aiConfig().key ? ` (AI: ${aiConfig().provider})` : ' (OPENROUTER_API_KEY not set: AI features are off)'}`);
 });

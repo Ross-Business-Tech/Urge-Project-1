@@ -14,33 +14,33 @@ export const FIELDS = {
   fundName: ['Fund name', 1], fundTagline: ['Fund tagline', 1], memoDate: ['Memo date', 1], relationshipManager: ['Relationship manager', 1],
   preparedBy: ['Underwriter', 1], committee: ['Investment committee', 1],
   firmName: ['Borrower firm name', 2], hqCity: ['Firm location', 2], principalName: ['Principal name', 2], principalTitle: ['Principal title', 2],
-  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], developerStage: ['Borrower stage', 2],
+  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], tdcCompleted: ['Total development costs completed', 2], unitsCompleted: ['Residential units completed', 2], commercialSqFtCompleted: ['Commercial space completed', 2], sqFtCompleted: ['Total square footage completed', 2], developerStage: ['Borrower stage', 2],
   sponsors: ['Sponsors / guarantors', 2], principalBio: ['Principal bio / background', 2], orgStructure: ['Organizational structure', 2],
   loanAmount: ['Loan amount', 3], interestRate: ['Interest rate', 3], termMonths: ['Term (months)', 3], originationFee: ['Origination fee', 3],
   repaymentStructure: ['Repayment structure', 3], interestOnlyMonths: ['Interest-only period (months)', 3], amortizationYears: ['Amortization after interest-only (years)', 3],
   successFeePct: ['Success fee', 3], interestReserve: ['Interest reserve?', 3],
-  loanPurpose: ['Reason for loan', 3], collateral: ['Collateral / guarantees', 3],
+  loanPurpose: ['Reason for loan', 3], collateral: ['Collateral', 3], guarantee: ['Guarantee', 3],
   urgeUses: ['How the loan will be used', 3],
-  projectName: ['Project name', 4], projectAddress: ['Location / address', 4], projectType: ['Project type', 4], assetType: ['Project description', 4], squareFeet: ['Total size (sq ft)', 4],
+  projectName: ['Project name', 4], projectAddress: ['Location / address', 4], projectType: ['Project type', 4], projectTypeOther: ['Other project type', 4], assetType: ['Project description', 4], squareFeet: ['Total project size (sq ft)', 4],
   residentialUnits: ['Residential units', 4], affordableTiers: ['Affordable units by AMI level', 4], targetPopulation: ['Who the project serves', 4], affordableUnits: ['Affordable units', 4], amiPct: ['Affordable at % of AMI', 4], commercialSqFt: ['Commercial space (sq ft)', 4],
   constructionType: ['Construction type', 4], constructionStart: ['Construction start', 4], siteControl: ['Site control?', 4], previouslyVacant: ['Previously vacant / blighted?', 4],
   totalProjectCost: ['Total project cost', 4], walkScore: ['Walk Score', 4], neighborhood: ['What’s around the site', 4],
-  impactArea: ['In a neighborhood impact area?', 4], jobsCreated: ['Permanent jobs created / supported', 4], constructionJobs: ['Construction jobs', 4], growthPlan: ['Growth plan', 4],
+  impactArea: ['In a strategic neighborhood?', 4], jobsCreated: ['Permanent jobs created / supported', 4], constructionJobs: ['Construction jobs', 4], growthPlan: ['Growth plan', 4],
   projectSources: ['Project sources (overall financing)', 4], projectUses: ['Project uses', 4],
   financials: ['Revenue and net income by year', 5], totalAssets: ['Total assets', 5], totalLiabilities: ['Total liabilities', 5],
   totalEquity: ['Total equity', 5], cash: ['Cash on hand', 5], ownerSharePct: ['Principal’s ownership of firm', 5],
   projectProjections: ['Project projections by year', 6], rentHaircutPct: ['Rent reduction applied by underwriting', 6],
   borrowerVacancyPct: ['Borrower’s vacancy assumption', 6], underwrittenVacancyPct: ['Underwritten vacancy', 6], underwritingNote: ['Underwriting notes on the borrower’s assumptions', 6],
   exitProceeds: ['Expected proceeds to repay loan', 7], exitMonth: ['Expected in month', 7],
-  repaymentOptions: ['Ways the fund gets repaid', 7], primaryRepayment: ['Primary repayment source', 7], secondaryRepayment: ['Secondary repayment source', 7],
+  repaymentOptions: ['Ways the fund gets repaid', 7], loanSizingPoints: ['Loan sizing points', 7], loanSizingParagraph: ['Loan sizing paragraph', 7], primaryRepayment: ['Primary repayment source', 7], secondaryRepayment: ['Secondary repayment source', 7],
   guarantorName: ['Guarantor', 7], guarantorPortfolio: ['Guarantor’s existing portfolio', 7], guarantorDscr: ['Guarantor portfolio DSCR', 7],
   collateralProperties: ['Collateral properties', 7],
   risks: ['Risks & mitigants', 8], taNeeds: ['Anticipated technical assistance needs', 8], approvers: ['Approvals', 8],
-  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11], customSections: ['Extra memo sections', 12],
+  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11], areaMedianIncome: ['Area median income (AMI)', 11], customSections: ['Extra memo sections', 12],
 };
 const COLS = { amount: 'amount', revenue: 'revenue', netIncome: 'net income', label: 'item', year: 'year', expenses: 'operating expenses', debtService: 'debt service', annualRent: 'annual rent', marketValue: 'market value' };
 
-const MONEY = new Set(['amount', 'revenue', 'netIncome', 'expenses', 'debtService', 'annualRent', 'marketValue', 'loanAmount', 'totalProjectCost', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash', 'exitProceeds']);
+const MONEY = new Set(['tdcCompleted', 'areaMedianIncome', 'amount', 'revenue', 'netIncome', 'expenses', 'debtService', 'annualRent', 'marketValue', 'loanAmount', 'totalProjectCost', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash', 'exitProceeds']);
 const PCT = new Set(['propertyTaxRatePct', 'interestRate', 'originationFee', 'ownerSharePct', 'successFeePct', 'amiPct', 'rentHaircutPct', 'borrowerVacancyPct', 'underwrittenVacancyPct']);
 const fieldLabel = (f) => FIELDS[f]?.[0] || f;
 
