@@ -4,6 +4,9 @@
 const ALLOWED_MODELS = new Set(['anthropic/claude-sonnet-5.5', 'anthropic/claude-sonnet-4.5']);
 const MAX_TOKENS = 8000;
 
+// The key as pasted into the host's settings, minus stray spaces, quotes or a leading "Bearer ".
+export const cleanKey = (raw) => String(raw || '').trim().replace(/^["']|["']$/g, '').replace(/^Bearer\s+/i, '').trim();
+
 // Best-effort per-IP limit (each serverless instance keeps its own count).
 const hits = new Map();
 function tooMany(req, limit = 60) {
@@ -21,7 +24,7 @@ function tooMany(req, limit = 60) {
 export async function openRouter(req, res, { allowWeb = false } = {}) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
   if (tooMany(req)) return res.status(429).json({ error: 'Too many requests this hour' });
-  const key = process.env.OPENROUTER_API_KEY;
+  const key = cleanKey(process.env.OPENROUTER_API_KEY);
   if (!key) return res.status(401).json({ error: 'OPENROUTER_API_KEY is not set on the server' });
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
