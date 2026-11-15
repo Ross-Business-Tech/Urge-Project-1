@@ -13,6 +13,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: SITE_PASSWORD
+        sync: false # the one shared password everyone uses to sign in (leave empty for an open site)
       - key: OPENROUTER_API_KEY
         sync: false # Render asks for the value; it is never stored in the repository
       # The key can be from OpenRouter (sk-or-...), OpenAI (sk-...) or the U-M GPT Toolkit

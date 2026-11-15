@@ -14,6 +14,7 @@ import extract from './api/extract.js';
 import bnews from './api/bnews.js';
 import gnews from './api/gnews.js';
 import { aiConfig, listModels, pickModel } from './api/_lib.js';
+import { passwordProtected, signedIn, loginPage, handleLogin, logout } from './api/auth.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -95,7 +96,7 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
 
 async function health(res) {
   const ai = aiConfig();
-  const out = { ok: true, aiKeySet: Boolean(ai.key), aiProvider: ai.provider, node: process.version };
+  const out = { ok: true, passwordProtected: passwordProtected(), aiKeySet: Boolean(ai.key), aiProvider: ai.provider, node: process.version };
   if (ai.key && ai.provider !== 'openrouter') {
     out.aiAddress = ai.base;
     out.aiOrganizationSet = Boolean(ai.org);
@@ -109,13 +110,30 @@ async function health(res) {
   res.end(JSON.stringify(out, null, 2));
 }
 
-http.createServer((req, res) => {
+http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://x').pathname;
+
+  // --- Shared-password sign-in (only when SITE_PASSWORD is set in Render)
+  if (pathname === '/login') {
+    if (req.method === 'POST') {
+      let body = '';
+      try { body = await readBody(req); } catch { res.statusCode = 413; return res.end(); }
+      return handleLogin(req, res, body);
+    }
+    return signedIn(req) ? (res.writeHead(302, { Location: '/' }), res.end()) : loginPage(res);
+  }
+  if (pathname === '/logout') return logout(req, res);
+  if (!signedIn(req)) {
+    if (pathname === '/api/health') return wrap(res).status(200).json({ ok: true, passwordProtected: true });
+    if (pathname.startsWith('/api/')) return wrap(res).status(401).json({ error: 'Please sign in again: reload the page and enter the team password.', code: 'login' });
+    return loginPage(res, { next: req.method === 'GET' ? req.url : '/' });
+  }
+
   // Status page for checking a deploy. Says whether the AI key is set, never what it is.
   if (pathname === '/api/health') return health(res);
   const route = ROUTES[pathname];
   if (route) return handleApi(req, res, route);
   return serveStatic(req, res);
 }).listen(PORT, () => {
-  console.log(`Memo Drafter running on port ${PORT}${aiConfig().key ? ` (AI: ${aiConfig().provider})` : ' (OPENROUTER_API_KEY not set: AI features are off)'}`);
+  console.log(`Memo Drafter running on port ${PORT}${passwordProtected() ? ' (password protected)' : ' (no SITE_PASSWORD: site is open to anyone with the link)'}${aiConfig().key ? ` (AI: ${aiConfig().provider})` : ' (OPENROUTER_API_KEY not set: AI features are off)'}`);
 });
