@@ -9,8 +9,13 @@ const th = (v, greenOk, yellowOk) => (greenOk(v) ? 'green' : yellowOk(v) ? 'yell
 
 // Borrower stage suggested from the track record, using the thresholds written in rubric.js.
 function suggested(deal) {
+  const S = R.stageSuggestion;
+  if (has(deal.tdcCompleted)) {
+    const t = num(deal.tdcCompleted);
+    return t < S.earlyTdcBelow ? 'Early-emerging' : t >= S.establishedTdcFrom ? 'Established' : 'Emerging';
+  }
   if (!has(deal.yearsExperience) && !has(deal.projectsCompleted)) return '';
-  const y = num(deal.yearsExperience), p = num(deal.projectsCompleted), S = R.stageSuggestion;
+  const y = num(deal.yearsExperience), p = num(deal.projectsCompleted);
   if (y < S.earlyYears || (has(deal.projectsCompleted) && p < S.earlyProjects)) return 'Early-emerging';
   return y < S.establishedYears && p < S.establishedProjects ? 'Emerging' : 'Established';
 }

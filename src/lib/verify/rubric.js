@@ -11,10 +11,11 @@ export const rubric = {
   walkScore: { green: 70 },
   jobsGreen: 25,
   // Mission: borrower stage. Emerging / Early-emerging developers count as a mission fit.
-  // When no stage is picked, it is suggested from the track record:
-  // under 3 years (or under 2 projects) = Early-emerging; under 10 years and under 10 projects = Emerging; else Established.
+  // When no stage is picked, it is suggested from total development costs completed (URGE's definition):
+  // under $1M = Early-emerging; $1M to $10M = Emerging; $10M+ = Established.
+  // Without that number: under 3 years (or under 2 projects) = Early-emerging; under 10 years and under 10 projects = Emerging; else Established.
   emergingStages: ['Emerging', 'Early-emerging'],
-  stageSuggestion: { earlyYears: 3, earlyProjects: 2, establishedYears: 10, establishedProjects: 10 },
+  stageSuggestion: { earlyTdcBelow: 1000000, establishedTdcFrom: 10000000, earlyYears: 3, earlyProjects: 2, establishedYears: 10, establishedProjects: 10 },
   missionGreensForGreen: 3,
   missionGreensForYellow: 2,
   // Plausibility ranges (warn if outside)

@@ -530,3 +530,12 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
 .link-btn.danger { color: var(--red); margin-left: auto; }
 .memo.ebiara .custom-section h2 { border-left: 4px solid var(--doc-navy); padding-left: 8px; }
 @media print { .memo.ebiara .custom-section h2 { border-left: 0; padding-left: 0; } }
+
+/* (i) info icons on Deal data sections */
+legend { position: relative; }
+.info-tip { margin-left: 8px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; background: transparent; color: var(--muted, #6e6e73); font: 700 12px/1 Georgia, serif; font-style: italic; cursor: help; vertical-align: middle; padding: 0; }
+.info-tip:hover, .info-tip[aria-expanded="true"] { color: var(--brand); }
+.info-pop { position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; width: min(340px, 80vw); background: #1d1d1f; color: #fff; font-size: 13px; font-weight: 400; line-height: 1.45; padding: 10px 12px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+@media (hover: hover) { legend:hover .info-pop { display: block; } }
+.ai-btn { gap: 4px; }
+.affordable-summary { margin: -4px 0 0; }

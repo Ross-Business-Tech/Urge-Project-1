@@ -57,7 +57,7 @@ export function checkAtypical(deal) {
   const EXTRAS = ['fundTagline', 'relationshipManager', 'sponsors', 'interestOnlyMonths', 'amortizationYears', 'successFeePct', 'interestReserve',
     'constructionJobs', 'residentialUnits', 'affordableUnits', 'amiPct', 'commercialSqFt', 'constructionType', 'constructionStart', 'siteControl',
     'previouslyVacant', 'projectProjections', 'rentHaircutPct', 'borrowerVacancyPct', 'underwrittenVacancyPct', 'underwritingNote',
-    'primaryRepayment', 'secondaryRepayment', 'guarantorName', 'guarantorPortfolio', 'guarantorDscr', 'collateralProperties', 'risks', 'taNeeds', 'approvers', 'developerStage', 'projectType', 'affordableTiers', 'targetPopulation', 'propertyTaxRatePct', 'customSections'];
+    'primaryRepayment', 'secondaryRepayment', 'guarantorName', 'guarantorPortfolio', 'guarantorDscr', 'collateralProperties', 'risks', 'taNeeds', 'approvers', 'developerStage', 'projectType', 'affordableTiers', 'targetPopulation', 'propertyTaxRatePct', 'customSections', 'tdcCompleted', 'unitsCompleted', 'commercialSqFtCompleted', 'sqFtCompleted', 'guarantee', 'projectTypeOther', 'areaMedianIncome', 'loanSizingPoints', 'loanSizingParagraph'];
   const skip = new Set(['fundName', 'underwriterNotes', 'repaymentStructure', 'growthPlan', 'news', 'newsSummary', 'newsCheckedAt', ...EXTRAS]);
   const keys = Object.keys(emptyDeal).filter((k) => !skip.has(k));
   const blank = keys.filter((k) => isBlank(deal[k]));

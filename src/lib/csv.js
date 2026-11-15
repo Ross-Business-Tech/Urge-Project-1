@@ -14,6 +14,7 @@ export const TABLES = {
   risks: ['risk', 'mitigant'],
   affordableTiers: ['units', 'ami'],
   customSections: ['title', 'position', 'body', 'templateId'],
+  loanSizingPoints: ['point'],
   approvers: ['name', 'title'],
   repaymentOptions: ['option'],
   team: ['name', 'company', 'role', 'bio'],

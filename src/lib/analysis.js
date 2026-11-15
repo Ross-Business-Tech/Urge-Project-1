@@ -2,8 +2,14 @@ import { num, has, money, pct, sum } from './format.js';
 import { neighborhoodImpact } from './impact.js';
 
 export const STAGES = ['Early-emerging', 'Emerging', 'Established'];
-// Suggested borrower stage from the track record, used when the underwriter hasn't picked one.
+// Suggested borrower stage, used when the underwriter hasn't picked one. URGE's definition is by the
+// size of development the borrower has completed: under $1M = Early-emerging, $1M to $10M = Emerging,
+// $10M+ = Established. Without that number, years and projects are used instead.
 export function suggestStage(deal) {
+  if (has(deal.tdcCompleted)) {
+    const t = num(deal.tdcCompleted);
+    return t < 1e6 ? 'Early-emerging' : t < 1e7 ? 'Emerging' : 'Established';
+  }
   if (!has(deal.yearsExperience) && !has(deal.projectsCompleted)) return '';
   const y = num(deal.yearsExperience), p = num(deal.projectsCompleted);
   if (y < 3 || (has(deal.projectsCompleted) && p < 2)) return 'Early-emerging';
@@ -186,8 +192,8 @@ export function analyze(deal) {
   const jobs = num(deal.jobsCreated);
   mission.push({ label: 'Economic impact', level: jobs >= 25 ? 'green' : jobs > 0 ? 'yellow' : 'yellow',
     text: jobs > 0 ? `Project expected to create or support about ${jobs} jobs and ${num(deal.squareFeet).toLocaleString()} sq ft of commercial space.` : 'Job creation estimate not provided.' });
-  mission.push({ label: 'Neighborhood impact area', level: deal.impactArea === 'Yes' ? 'green' : 'yellow',
-    text: deal.impactArea === 'Yes' ? 'Project is located in a designated neighborhood impact area.' : deal.impactArea === 'No' ? 'Project is not in a designated impact area.' : 'Impact-area status not provided.' });
+  mission.push({ label: 'Strategic neighborhood', level: deal.impactArea === 'Yes' ? 'green' : 'yellow',
+    text: deal.impactArea === 'Yes' ? 'Project is located in a strategic neighborhood.' : deal.impactArea === 'No' ? 'Project is not in a strategic neighborhood.' : 'Strategic-neighborhood status not provided.' });
   const missionGreens = mission.filter((m) => m.level === 'green').length;
   const missionLevel = missionGreens >= 3 ? 'green' : missionGreens >= 2 ? 'yellow' : 'red';
 
