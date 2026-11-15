@@ -106,7 +106,7 @@ test('typing the amount without $ or commas (750000) is still read', () => {
   return r.items.some((i) => /Loan uses equal/.test(i.title)) || 'not read';
 });
 test('rewording one sentence is reported as "found in only 5 of 6 places"', () => {
-  const r = recheck(html0.replace('enterprise loan', 'financing request').replace(/\$800,000/, (m) => m));
+  const r = recheck(html0.replace('Approval of a', 'Approval of the').replace(/\$800,000/, (m) => m));
   return r.items.some((i) => /only 5 of 6/.test(i.title)) || JSON.stringify(r.items.filter((i) => i.area === 'Memo vs form').map((i) => i.title));
 });
 test('negative cash shown in the memo can be corrected by typing in the memo', () => {

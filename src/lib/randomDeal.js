@@ -207,7 +207,7 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
 
   const deal = {
     ...structuredClone(emptyDeal),
-    fundName: 'URGE',
+    fundName: 'EBIARA',
     memoDate: new Date(Date.UTC(2026, 10, 1 + int(0, 45))).toISOString().slice(0, 10),
     preparedBy: `Sample Underwriter ${int(1, 9)}`,
     committee: pick(COMMITTEES),

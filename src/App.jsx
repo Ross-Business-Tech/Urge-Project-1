@@ -178,7 +178,7 @@ export default function App() {
     setTimeout(() => {
       let el = document.getElementById('f-' + field);
       if (!el) {
-        const wanted = { urgeUses: 'How the loan will be used', projectSources: 'Project sources (overall financing)', projectUses: 'Project uses', financials: 'Revenue and net income by year', repaymentOptions: 'Ways the fund gets repaid (in priority order)', news: 'News items for the memo', team: 'Team members' }[field];
+        const wanted = { urgeUses: 'How the loan will be used', projectSources: 'Project sources (overall financing)', projectUses: 'Project uses', financials: 'Revenue and net income by year', repaymentOptions: 'Ways the fund gets repaid (in priority order)', news: 'News items for the memo', team: 'Team members', projectProjections: 'Project projections by year (as underwritten)', collateralProperties: 'Collateral properties', risks: 'Risks & mitigants', approvers: 'Approvals (signature lines)' }[field];
         el = [...document.querySelectorAll('.field .label')].find((l) => l.textContent === wanted);
       }
       if (el) {
@@ -229,7 +229,7 @@ export default function App() {
   const memoHtml = () => memoRef.current?.innerHTML || '';
 
   const downloadWord = () => {
-    const css = `body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#1a1a1a}h1{font-size:20pt}h2{font-size:14pt;color:#1d3b5c;border-bottom:1px solid #ccc}table{border-collapse:collapse;width:100%;margin:6pt 0}td,th{border:1px solid #ccc;padding:4pt;font-size:10pt;text-align:left}.num{text-align:right}.badge{font-weight:bold}.badge-red{color:#b42318}.badge-yellow{color:#a15c00}.badge-green{color:#1b7f3b}.callout{background:#f2f6fa;padding:6pt;border-left:3pt solid #1d3b5c}.missing{background:#fff3c4}`;
+    const css = `body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111}p{margin:0 0 8pt;text-align:justify}h2{font-size:13pt;font-weight:bold;margin:16pt 0 6pt}h3{font-size:11pt;text-align:center;text-decoration:underline}table{border-collapse:collapse;width:100%;margin:6pt 0}td,th{border:1px solid #8c8c8c;padding:4pt;font-size:10pt;text-align:left;vertical-align:top}thead th{background:#e7e7e7}.breakdown thead th,.terms thead th,.proj thead th{background:#dbe8f5}.num{text-align:right}.eval{text-align:center;vertical-align:middle;width:70pt}.eval-green{background:#92d050}.eval-yellow{background:#ffff00}.eval-red{background:#ff4b4b}.eval-label{font-size:8pt;color:#555}.memo-logo{text-align:center}.logo-mark{display:none}.logo-name{display:block;font-size:16pt;font-weight:bold;letter-spacing:4pt;color:#2b3a7a}.logo-tag{display:block;font-size:8pt;color:#4d5b9a}.meta-label,.meta-firm,.meta-title{font-weight:bold}.draft-tag{color:#c00000;font-weight:bold;text-align:right}.badge{font-weight:bold}.badge-red{color:#b42318}.badge-yellow{color:#a15c00}.badge-green{color:#1b7f3b}.callout{background:#f4f4f4;padding:6pt;border-left:3pt solid #555}.missing{background:#fff3c4}.exhibit-title{text-align:center}.metrics th{text-align:right}.sign-line{border-bottom:1px solid #000;height:30pt;width:260pt}.sign-date{display:none}.memo-footer{display:none}`;
     const html = `<html><head><meta charset="utf-8"><title>Investment memo</title><style>${css}</style></head><body>${memoHtml()}</body></html>`;
     download(`investment-memo-${slug(generated?.deal.firmName)}.doc`, html, 'application/msword');
   };

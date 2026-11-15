@@ -9,17 +9,22 @@ import { TABLES } from './csv.js';
 const MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-sonnet-4.5'];
 
 // The news check fills news items; the memo-writer fills these by hand.
-const SKIP = new Set(['news', 'newsSummary', 'newsCheckedAt', 'fundName', 'memoDate', 'preparedBy', 'committee', 'underwriterNotes']);
+const SKIP = new Set(['news', 'newsSummary', 'newsCheckedAt', 'fundName', 'fundTagline', 'memoDate', 'relationshipManager', 'preparedBy', 'committee', 'underwriterNotes', 'approvers', 'taNeeds', 'risks', 'rentHaircutPct', 'underwrittenVacancyPct', 'underwritingNote']);
 
 const NUMBER = new Set([
   'yearsExperience', 'projectsCompleted', 'loanAmount', 'interestRate', 'termMonths', 'originationFee', 'squareFeet',
   'totalProjectCost', 'walkScore', 'jobsCreated', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash',
-  'ownerSharePct', 'exitProceeds', 'exitMonth',
+  'ownerSharePct', 'exitProceeds', 'exitMonth', 'interestOnlyMonths', 'amortizationYears', 'successFeePct', 'residentialUnits',
+  'affordableUnits', 'amiPct', 'commercialSqFt', 'constructionJobs', 'borrowerVacancyPct', 'guarantorDscr',
 ]);
-const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year']);
+const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year', 'expenses', 'debtService', 'annualRent', 'marketValue']);
 const CHOICES = {
   bipocOwned: ['Yes', 'No'],
   impactArea: ['Yes', 'No'],
+  interestReserve: ['Yes', 'No'],
+  siteControl: ['Yes', 'No'],
+  previouslyVacant: ['Yes', 'No'],
+  constructionType: ['New construction', 'Rehab', 'Both'],
   repaymentStructure: ['Interest-only, principal due at maturity', 'Monthly amortizing', 'Accrued interest, all due at maturity'],
 };
 const COL_CHOICES = { financials: { type: ['Actual', 'Projected'] } };
@@ -30,7 +35,10 @@ const HINTS = {
   exitProceeds: 'dollars the borrower expects from the project to repay this loan',
   urgeUses: 'how THIS loan will be spent', projectSources: 'all financing for the whole project',
   projectUses: 'all costs of the whole project', financials: 'the borrower firm’s yearly revenue and net income',
-  repaymentOptions: 'ways the lender gets repaid, most likely first', team: 'developer, architect, contractor, etc.',
+  repaymentOptions: 'ways the lender gets repaid, most likely first',
+  projectProjections: 'the PROJECT’s yearly revenue, operating expenses and debt service from the pro forma',
+  collateralProperties: 'properties pledged as collateral, with annual rent and market value',
+  guarantorDscr: 'debt service coverage of the guarantor’s existing portfolio, e.g. 1.4', team: 'developer, architect, contractor, etc.',
 };
 
 export const SCAN_FIELDS = Object.keys(emptyDeal).filter((k) => !SKIP.has(k));
@@ -154,7 +162,7 @@ export async function extractDeal(docs) {
   if (res.status === 404 || res.status === 405)
     throw new Error('AI document reading isn’t available on this link. It works on the team’s dev site and public site once your instructor adds the AI key.');
   if (res.status === 401 || res.status === 403)
-    throw new Error('AI document reading isn’t switched on yet: your instructor needs to add the OPENROUTER_API_KEY variable in here.now.');
+    throw new Error('AI document reading isn’t switched on yet: the OPENROUTER_API_KEY variable needs to be added (in here.now, or in Vercel’s Environment Variables).');
   if (res.status === 413) throw new Error('Too much to send at once. Remove some files (or big scans) and try again.');
   if (res.status === 429) throw new Error('Too many AI requests in the last hour. Try again later.');
   if (!res.ok) throw new Error(`The AI request failed (error ${res.status}). Try again in a minute.`);
