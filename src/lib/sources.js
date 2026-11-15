@@ -7,29 +7,41 @@ import { safeUrl } from './news.js';
 // Labels and sections match the Deal data page (DealForm.jsx).
 const S = {
   1: '1. Memo details', 2: '2. Borrower', 3: '3. Loan request', 4: '4. Project',
-  5: '5. Firm financials', 6: '6. Loan sizing & repayment', 7: '7. News check', 8: '8. Development team',
+  5: '5. Firm financials', 6: '6. Project cash flow & underwriting', 7: '7. Loan sizing & repayment',
+  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team',
 };
 export const FIELDS = {
-  fundName: ['Fund name', 1], memoDate: ['Memo date', 1], preparedBy: ['Prepared by', 1], committee: ['Investment committee', 1],
+  fundName: ['Fund name', 1], fundTagline: ['Fund tagline', 1], memoDate: ['Memo date', 1], relationshipManager: ['Relationship manager', 1],
+  preparedBy: ['Underwriter', 1], committee: ['Investment committee', 1],
   firmName: ['Borrower firm name', 2], hqCity: ['Firm location', 2], principalName: ['Principal name', 2], principalTitle: ['Principal title', 2],
   yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], bipocOwned: ['BIPOC-owned firm?', 2],
-  principalBio: ['Principal bio / background', 2], orgStructure: ['Organizational structure', 2],
+  sponsors: ['Sponsors / guarantors', 2], principalBio: ['Principal bio / background', 2], orgStructure: ['Organizational structure', 2],
   loanAmount: ['Loan amount', 3], interestRate: ['Interest rate', 3], termMonths: ['Term (months)', 3], originationFee: ['Origination fee', 3],
-  repaymentStructure: ['Repayment structure', 3], loanPurpose: ['Reason for loan', 3], collateral: ['Collateral / guarantees', 3],
+  repaymentStructure: ['Repayment structure', 3], interestOnlyMonths: ['Interest-only period (months)', 3], amortizationYears: ['Amortization after interest-only (years)', 3],
+  successFeePct: ['Success fee', 3], interestReserve: ['Interest reserve?', 3],
+  loanPurpose: ['Reason for loan', 3], collateral: ['Collateral / guarantees', 3],
   urgeUses: ['How the loan will be used', 3],
-  projectName: ['Project name', 4], projectAddress: ['Location / address', 4], assetType: ['Property type', 4], squareFeet: ['Size (sq ft)', 4],
+  projectName: ['Project name', 4], projectAddress: ['Location / address', 4], assetType: ['Property type', 4], squareFeet: ['Total size (sq ft)', 4],
+  residentialUnits: ['Residential units', 4], affordableUnits: ['Affordable units', 4], amiPct: ['Affordable at % of AMI', 4], commercialSqFt: ['Commercial space (sq ft)', 4],
+  constructionType: ['Construction type', 4], constructionStart: ['Construction start', 4], siteControl: ['Site control?', 4], previouslyVacant: ['Previously vacant / blighted?', 4],
   totalProjectCost: ['Total project cost', 4], walkScore: ['Walk Score', 4], neighborhood: ['What’s around the site', 4],
-  impactArea: ['In a neighborhood impact area?', 4], jobsCreated: ['Jobs created / supported', 4], growthPlan: ['Growth plan', 4],
+  impactArea: ['In a neighborhood impact area?', 4], jobsCreated: ['Permanent jobs created / supported', 4], constructionJobs: ['Construction jobs', 4], growthPlan: ['Growth plan', 4],
   projectSources: ['Project sources (overall financing)', 4], projectUses: ['Project uses', 4],
   financials: ['Revenue and net income by year', 5], totalAssets: ['Total assets', 5], totalLiabilities: ['Total liabilities', 5],
   totalEquity: ['Total equity', 5], cash: ['Cash on hand', 5], ownerSharePct: ['Principal’s ownership of firm', 5],
-  exitProceeds: ['Expected proceeds to repay loan', 6], exitMonth: ['Expected in month', 6],
-  repaymentOptions: ['Ways the fund gets repaid', 6], news: ['News items for the memo', 7], team: ['Team members', 8],
+  projectProjections: ['Project projections by year', 6], rentHaircutPct: ['Rent reduction applied by underwriting', 6],
+  borrowerVacancyPct: ['Borrower’s vacancy assumption', 6], underwrittenVacancyPct: ['Underwritten vacancy', 6], underwritingNote: ['Underwriting notes on the borrower’s assumptions', 6],
+  exitProceeds: ['Expected proceeds to repay loan', 7], exitMonth: ['Expected in month', 7],
+  repaymentOptions: ['Ways the fund gets repaid', 7], primaryRepayment: ['Primary repayment source', 7], secondaryRepayment: ['Secondary repayment source', 7],
+  guarantorName: ['Guarantor', 7], guarantorPortfolio: ['Guarantor’s existing portfolio', 7], guarantorDscr: ['Guarantor portfolio DSCR', 7],
+  collateralProperties: ['Collateral properties', 7],
+  risks: ['Risks & mitigants', 8], taNeeds: ['Anticipated technical assistance needs', 8], approvers: ['Approvals', 8],
+  news: ['News items for the memo', 9], team: ['Team members', 10],
 };
-const COLS = { amount: 'amount', revenue: 'revenue', netIncome: 'net income', label: 'item', year: 'year' };
+const COLS = { amount: 'amount', revenue: 'revenue', netIncome: 'net income', label: 'item', year: 'year', expenses: 'operating expenses', debtService: 'debt service', annualRent: 'annual rent', marketValue: 'market value' };
 
-const MONEY = new Set(['amount', 'revenue', 'netIncome', 'loanAmount', 'totalProjectCost', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash', 'exitProceeds']);
-const PCT = new Set(['interestRate', 'originationFee', 'ownerSharePct']);
+const MONEY = new Set(['amount', 'revenue', 'netIncome', 'expenses', 'debtService', 'annualRent', 'marketValue', 'loanAmount', 'totalProjectCost', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash', 'exitProceeds']);
+const PCT = new Set(['interestRate', 'originationFee', 'ownerSharePct', 'successFeePct', 'amiPct', 'rentHaircutPct', 'borrowerVacancyPct', 'underwrittenVacancyPct']);
 const fieldLabel = (f) => FIELDS[f]?.[0] || f;
 
 // Where a typed-in value came from, based on how the deal was loaded.
@@ -114,7 +126,31 @@ const CALCS = {
     const lp = a.projections[a.projections.length - 1] || {};
     return { label: `Principal’s share of ${lp.year} net income`, formula: `${money(lp.netIncome)} projected net income × ${num(d.ownerSharePct)}% ownership = ${money((num(lp.netIncome) * num(d.ownerSharePct)) / 100)}`, inputs: ['financials', 'ownerSharePct'] };
   },
-  newsCount: (d, a) => ({ label: 'Red and yellow review items', formula: `The app counted the automatic checks in the “Underwriter review: flags” section: ${a.flags.filter((f) => f.level === 'red').length} red and ${a.flags.filter((f) => f.level === 'yellow').length} yellow. Each flag there shows its own rule.`, inputs: [] }),
+  successFee: (d, a) => ({ label: 'Success fee in dollars', formula: `${money(a.loan)} loan × ${num(d.successFeePct)}% success fee = ${money(a.successFee)}`, inputs: ['loanAmount', 'successFeePct'] }),
+  totalObligations: (d, a) => ({ label: `Total owed to ${d.fundName || 'the fund'}`, formula: `${money(a.loan)} principal + ${money(a.totalInterest)} interest + ${money(a.successFee)} success fee = ${money(a.totalObligations)}`, inputs: ['loanAmount', 'interestRate', 'termMonths', 'successFeePct'] }),
+  aggregateCoverage: (d, a) => ({ label: 'Aggregate repayment coverage', formula: `${money(a.exitProceeds)} expected proceeds ÷ ${money(a.totalObligations)} total obligations = ${fx(a.aggregateCoverage)}`, inputs: ['exitProceeds', 'loanAmount', 'interestRate', 'termMonths', 'successFeePct'] }),
+  amortStart: (d, a) => ({ label: 'First amortizing payment', formula: `${a.ioMonths} interest-only months + 1 = month ${a.amortStartMonth}`, inputs: ['interestOnlyMonths'] }),
+  noi: (d, a, i) => {
+    const r = a.proj[Number(i)] || {};
+    const k = (d.projectProjections || []).findIndex((x) => String(x.year) === String(r.year));
+    return { label: `Net operating income, ${r.year}`, formula: `${money(r.revenue)} revenue − ${money(r.expenses)} operating expenses = ${money(r.noi)}`, inputs: [`projectProjections.${k}.revenue`, `projectProjections.${k}.expenses`] };
+  },
+  dscr: (d, a, i) => {
+    const r = a.proj[Number(i)] || {};
+    const k = (d.projectProjections || []).findIndex((x) => String(x.year) === String(r.year));
+    return { label: `Debt service coverage (DSCR), ${r.year}`, formula: `${money(r.noi)} net operating income ÷ ${money(r.debtService)} debt service = ${fx(r.dscr)}`, inputs: [`projectProjections.${k}.revenue`, `projectProjections.${k}.expenses`, `projectProjections.${k}.debtService`] };
+  },
+  minDscr: (d, a) => ({ label: 'Lowest underwritten project DSCR', formula: `Lowest of ${a.proj.map((r) => `${fx(r.dscr)} (${r.year})`).join(', ')} = ${fx(a.minDscr)}`, inputs: ['projectProjections'] }),
+  affordablePct: (d, a) => ({ label: 'Share of units that are affordable', formula: `${num(d.affordableUnits)} affordable units ÷ ${num(d.residentialUnits)} residential units = ${pct(a.affordablePct, 0)}`, inputs: ['affordableUnits', 'residentialUnits'] }),
+  costPerSf: (d, a) => ({ label: 'Total cost per square foot', formula: `${money(a.useTotal)} total uses ÷ ${num(d.squareFeet).toLocaleString()} sq ft = $${a.costPerSf?.toFixed(2)}`, inputs: ['projectUses', 'squareFeet'] }),
+  useCostPerSf: (d, a, i) => {
+    const r = d.projectUses?.[Number(i)] || {};
+    return { label: `Cost per square foot: ${r.label || 'row'}`, formula: `${money(r.amount)} ÷ ${num(d.squareFeet).toLocaleString()} sq ft = $${(num(r.amount) / (num(d.squareFeet) || 1)).toFixed(2)}`, inputs: [`projectUses.${i}.amount`, 'squareFeet'] };
+  },
+  collateralRent: (d, a) => ({ label: 'Collateral: total annual rent', formula: `${(d.collateralProperties || []).map((r) => money(r.annualRent)).join(' + ')} = ${money(a.collateralRent)}`, inputs: (d.collateralProperties || []).map((_, i) => `collateralProperties.${i}.annualRent`) }),
+  collateralValue: (d, a) => ({ label: 'Collateral: total market value', formula: `${(d.collateralProperties || []).map((r) => money(r.marketValue)).join(' + ')} = ${money(a.collateralValue)}`, inputs: (d.collateralProperties || []).map((_, i) => `collateralProperties.${i}.marketValue`) }),
+  collateralCoverage: (d, a) => ({ label: 'Collateral value vs. loan', formula: `${money(a.collateralValue)} collateral value ÷ ${money(a.loan)} loan = ${fx(a.collateralCoverage)}`, inputs: ['collateralProperties', 'loanAmount'] }),
+  newsCount: (d, a) => ({ label: 'Red and yellow review items', formula: `The app counted the automatic checks in the “Underwriter review: automated flags” section: ${a.flags.filter((f) => f.level === 'red').length} red and ${a.flags.filter((f) => f.level === 'yellow').length} yellow. Each flag there shows its own rule.`, inputs: [] }),
 };
 
 // Main entry: ref is what the memo put on the number (data-src).

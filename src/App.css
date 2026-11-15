@@ -282,3 +282,88 @@ legend { font-weight: 700; color: var(--brand); padding: 0 6px; font-size: 16px;
 .verify .verify-sync ol { list-style: decimal; display: block; }
 .verify .verify-sync li { display: list-item; }
 .chaotic-note { margin: 0 0 10px; }
+
+/* ---------------------------------------------------------------------------
+   Memo in the fund's own document style (modelled on EBIARA investment memos):
+   plain Arial, black text, bold all-caps section headings, bordered tables with grey
+   headers, and Evaluation cells filled green / yellow / red. */
+.memo.ebiara { --doc-ink: #111; --doc-line: #8c8c8c; --doc-head: #e7e7e7; --doc-blue: #dbe8f5; --doc-navy: #2b3a7a;
+  --eval-green: #92d050; --eval-yellow: #ffff00; --eval-red: #ff4b4b;
+  font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.5; color: var(--doc-ink); position: relative; }
+.paper:has(.memo.ebiara) { border-radius: 2px; padding: 44px 60px 56px; }
+.memo.ebiara .memo-head { border: 0; padding: 0; margin: 0 0 18px; }
+.memo.ebiara .memo-logo { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 22px; }
+.memo.ebiara .logo-mark { width: 52px; height: 52px; display: grid; place-items: center; border: 5px double var(--doc-navy); color: var(--doc-navy); font: 700 26px/1 Georgia, serif; }
+.memo.ebiara .logo-name { font-weight: 700; letter-spacing: .22em; color: var(--doc-navy); font-size: 19px; margin-top: 6px; }
+.memo.ebiara .logo-tag { font-size: 11px; color: #4d5b9a; }
+.memo.ebiara .memo-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 36px; }
+.memo.ebiara .memo-meta p { margin: 0; }
+.memo.ebiara .meta-label { font-weight: 700; }
+.memo.ebiara .meta-firm { font-weight: 700; margin-top: 4px !important; }
+.memo.ebiara .meta-title { font-weight: 700; }
+.memo.ebiara .draft-tag { position: absolute; top: 0; right: 0; margin: 0; color: #c00000; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 13px; border: 2px solid #c00000; padding: 2px 8px; }
+.memo.ebiara h2 { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 700; color: var(--doc-ink); border: 0; margin: 30px 0 8px; padding: 0; letter-spacing: 0; }
+.memo.ebiara h3 { font-size: 14px; text-transform: none; letter-spacing: 0; text-align: center; text-decoration: underline; margin: 18px 0 8px; }
+.memo.ebiara p { margin: 0 0 12px; text-align: justify; }
+.memo.ebiara table { border: 1px solid var(--doc-line); font-size: 13.5px; }
+.memo.ebiara th, .memo.ebiara td { border: 1px solid var(--doc-line); padding: 6px 8px; }
+.memo.ebiara thead th { background: var(--doc-head); color: var(--doc-ink); font-size: 13.5px; text-transform: none; letter-spacing: 0; font-weight: 700; border-bottom: 1px solid var(--doc-line); }
+.memo.ebiara tfoot td { border-top: 2px solid var(--doc-ink); }
+.memo.ebiara tbody th { font-weight: 700; text-align: left; }
+.memo.ebiara .criteria th:first-child { width: 30%; }
+.memo.ebiara .criteria thead th:nth-child(2) { width: 18%; }
+.memo.ebiara td.eval { min-width: 64px; vertical-align: middle; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.memo.ebiara .eval-green { background: var(--eval-green); }
+.memo.ebiara .eval-yellow { background: var(--eval-yellow); }
+.memo.ebiara .eval-red { background: var(--eval-red); }
+.memo.ebiara .eval-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(0,0,0,.55); }
+.memo.ebiara tr.overall td, .memo.ebiara tr.overall th { background: transparent; }
+.memo.ebiara tr.overall td.eval-green { background: var(--eval-green); }
+.memo.ebiara tr.overall td.eval-yellow { background: var(--eval-yellow); }
+.memo.ebiara tr.overall td.eval-red { background: var(--eval-red); }
+.memo.ebiara .considerations { padding-left: 22px; }
+.memo.ebiara .considerations > li { margin-bottom: 12px; }
+.memo.ebiara .considerations ul { margin: 6px 0 0; }
+.memo.ebiara .breakdown thead th, .memo.ebiara .terms thead th, .memo.ebiara .proj thead th { background: var(--doc-blue); }
+.memo.ebiara .terms th { width: 36%; color: var(--doc-ink); font-weight: 700; }
+.memo.ebiara .su { gap: 0; align-items: start; }
+.memo.ebiara .su table { margin: 0; }
+.memo.ebiara .su table + table { border-left: 0; }
+.memo.ebiara .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.memo.ebiara .callout { background: #f4f4f4; border-left: 3px solid #555; border-radius: 0; font-size: 13.5px; }
+.memo.ebiara .risks > li { margin-bottom: 10px; }
+.memo.ebiara .risks ol { margin: 4px 0 0; }
+.memo.ebiara .chart { border-color: #ccc; border-radius: 0; }
+.memo.ebiara .approvals .sign { margin: 26px 0 6px; max-width: 420px; }
+.memo.ebiara .sign-line { display: flex; align-items: flex-end; gap: 16px; }
+.memo.ebiara .sign-line span:first-child { flex: 1; border-bottom: 1px solid #000; height: 34px; }
+.memo.ebiara .sign-date { width: 90px; border-bottom: 1px solid #000; font-size: 12px; color: #666; }
+.memo.ebiara .exhibit-title { text-align: center; font-size: 16px; margin-top: 40px; }
+.memo.ebiara .metrics th { width: 46%; text-align: right; font-weight: 700; }
+.memo.ebiara .metrics tr.grp th { text-align: left; background: var(--doc-head); color: #1f6f8b; }
+.memo.ebiara .memo-footer { display: none; }
+.memo.ebiara .flags-section .small, .memo.ebiara p.small { text-align: left; }
+@media (max-width: 640px) {
+  .paper:has(.memo.ebiara) { padding: 22px 14px 28px; }
+  .memo.ebiara { font-size: 15px; }
+  .memo.ebiara p { text-align: left; }
+  .memo.ebiara .memo-meta { grid-template-columns: 1fr; }
+  .memo.ebiara .draft-tag { font-size: 11px; }
+  .memo.ebiara .su { grid-template-columns: 1fr; }
+  .memo.ebiara .su table + table { border-left: 1px solid var(--doc-line); margin-top: 10px; }
+  .memo.ebiara .criteria th { word-break: normal; overflow-wrap: normal; hyphens: manual; font-size: 12px; }
+  .memo.ebiara .criteria th:first-child { width: auto; min-width: 100px; }
+  .memo.ebiara .criteria thead th:nth-child(2) { width: auto; min-width: 66px; }
+  .memo.ebiara td.eval { min-width: 56px; }
+  .memo.ebiara .eval-label { font-size: 9.5px; }
+  .memo.ebiara .metrics th { text-align: left; }
+  .memo.ebiara .table-scroll table { min-width: 560px; }
+}
+@media print {
+  .paper:has(.memo.ebiara) { padding: 0; }
+  .memo.ebiara { font-size: 11pt; }
+  .memo.ebiara .draft-tag { position: static; display: inline-block; float: right; }
+  .memo.ebiara .exhibit, .memo.ebiara .approvals { break-before: page; }
+  .memo.ebiara .memo-footer { display: block; position: fixed; bottom: 0; left: 0; font-size: 9pt; color: #333; }
+  .memo.ebiara .table-scroll table { min-width: 0; }
+}
