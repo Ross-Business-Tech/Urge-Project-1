@@ -61,6 +61,7 @@ export async function aiError(res, what) {
   detail = String(detail).replace(/\s+/g, ' ').trim().slice(0, 160);
   if (res.status === 404 || res.status === 405)
     return `${what} isn’t available on this link. It works on the Render site and the team’s here.now sites once the AI key is added.`;
+  if (/sign in again/i.test(detail)) return detail;
   if (/not set on the server/i.test(detail))
     return `${what} isn’t switched on yet: the server has no OPENROUTER_API_KEY. In Render, open the service → Environment, add OPENROUTER_API_KEY, save, and let it redeploy.`;
   if (res.status === 401 || res.status === 403)
@@ -290,6 +291,7 @@ export async function searchNewsFree(deal) {
   if (failed.length === results.length) {
     const st = failed[0].reason?.status;
     if (st === 404 || st === 405) throw new Error('News search only works on the published site (test link, dev site or public site), not here.');
+    if (st === 401) throw new Error('Please sign in again: reload the page and enter the team password.');
     if (st === 429) throw new Error('Too many searches in the last hour. Try again later.');
     throw new Error('Couldn’t reach the news search. Check your connection and try again.');
   }
