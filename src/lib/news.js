@@ -52,6 +52,25 @@ function parseJson(text) {
   }
 }
 
+// Turns a failed AI request into a message that says what to fix. The server answers
+// "...not set on the server" when the key is missing; anything else comes from OpenRouter itself.
+export async function aiError(res, what) {
+  const body = await res.text().catch(() => '');
+  let detail = '';
+  try { const j = JSON.parse(body); detail = j?.error?.message || j?.error || ''; } catch { detail = body; }
+  detail = String(detail).replace(/\s+/g, ' ').trim().slice(0, 160);
+  if (res.status === 404 || res.status === 405)
+    return `${what} isn’t available on this link. It works on the Render site and the team’s here.now sites once the AI key is added.`;
+  if (/not set on the server/i.test(detail))
+    return `${what} isn’t switched on yet: the server has no OPENROUTER_API_KEY. In Render, open the service → Environment, add OPENROUTER_API_KEY, save, and let it redeploy.`;
+  if (res.status === 401 || res.status === 403)
+    return `The AI service rejected the API key${detail ? ` (it said: “${detail}”)` : ''}. Check that the key in Render’s OPENROUTER_API_KEY setting is copied exactly and is still active.`;
+  if (res.status === 402 || /quota|billing|credit/i.test(detail)) return `The AI account is out of credit${detail ? ` (“${detail}”)` : ''}. Add credit or billing to the AI account (OpenAI or OpenRouter), then try again.`;
+  if (res.status === 413) return 'Too much to send at once. Remove some files (or big scans) and try again.';
+  if (res.status === 429) return 'Too many AI requests in the last hour. Try again later.';
+  return `${what} failed (error ${res.status}${detail ? `: “${detail}”` : ''}). Try again in a minute.`;
+}
+
 export async function searchNews(deal) {
   let res;
   try {
@@ -68,12 +87,7 @@ export async function searchNews(deal) {
   } catch {
     throw new Error('Couldn’t reach the news search. Check your connection and try again.');
   }
-  if (res.status === 404 || res.status === 405)
-    throw new Error('News search isn’t available on this link. It works on the team’s dev site and public site once your instructor adds the AI key.');
-  if (res.status === 401 || res.status === 403)
-    throw new Error('News search isn’t switched on yet: your instructor needs to add the OPENROUTER_API_KEY variable in here.now.');
-  if (res.status === 429) throw new Error('Too many searches in the last hour. Try again later.');
-  if (!res.ok) throw new Error(`The news search failed (error ${res.status}). Try again in a minute.`);
+  if (!res.ok) throw new Error(await aiError(res, 'The AI news search'));
 
   const data = await res.json().catch(() => null);
   const msg = data?.choices?.[0]?.message;
@@ -166,17 +180,37 @@ function items(xml) {
   });
 }
 
+// Bing first. If Bing fails or returns nothing (it sometimes gives servers an empty feed),
+// Google News is tried too. Returns the articles plus how many each source gave back.
 async function feed(query) {
+  let bing = [], bingErr = null;
   try {
-    return items(await fetchXml('./api/bnews?' + new URLSearchParams({ q: query, format: 'rss', count: '20' })));
+    bing = items(await fetchXml('./api/bnews?' + new URLSearchParams({ q: query, format: 'rss', count: '20' })));
   } catch (err) {
     if (err.status === 404 || err.status === 405) throw err;
+    bingErr = err;
+  }
+  if (bing.length) return bing;
+  try {
     return items(await fetchXml('./api/gnews?' + new URLSearchParams({ q: query + ' when:3y', hl: 'en-US', gl: 'US', ceid: 'US:en' })));
+  } catch (err) {
+    if (bingErr) throw err;
+    return [];
   }
 }
 
 const norm = (t) => String(t || '').toLowerCase().replace(/[’'`]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-const mentions = (text, must) => !must || (' ' + norm(text) + ' ').includes(' ' + norm(must) + ' ');
+const FILLER = new Set(['llc', 'inc', 'co', 'corp', 'lp', 'ltd', 'the', 'and', 'of', 'group', 'company']);
+// True when every meaningful word of the name appears in the article ("Bedrock Detroit" matches
+// "Detroit developer Bedrock..."). Street numbers must appear next to the street name.
+const mentions = (text, must) => {
+  if (!must) return true;
+  const t = ' ' + norm(text) + ' ';
+  const m = norm(must);
+  if (/^\d/.test(m)) return t.includes(' ' + m + ' ');
+  const words = m.split(' ').filter((w) => w.length > 1 && !FILLER.has(w));
+  return words.length ? words.every((w) => t.includes(' ' + w + ' ') || t.includes(' ' + w + 's ')) : t.includes(' ' + m + ' ');
+};
 
 // "100 Sample Avenue, Detroit, MI (fictional)" -> { exact: "100 Sample Avenue", street: "Sample Avenue", city: "Detroit" }
 function splitAddress(address) {
@@ -210,6 +244,7 @@ export async function searchNewsFree(deal) {
     throw new Error('Couldn’t reach the news search. Check your connection and try again.');
   }
 
+  const rawTotal = results.reduce((t, r) => t + (r.status === 'fulfilled' ? r.value.length : 0), 0);
   const seen = new Set();
   const items = [];
   const counts = { Borrower: 0, Site: 0 };
@@ -240,6 +275,8 @@ export async function searchNewsFree(deal) {
   const reds = items.filter((i) => i.level === 'red').length;
   const summary = items.length
     ? `Found ${counts.Borrower} article(s) about the borrower and ${counts.Site} about the site in the last 3 years${reds ? `; ${reds} mention warning words such as lawsuits or liens and should be read first` : ''}. Ratings come from keyword rules, not a full read, so open each article to confirm.`
-    : 'No news articles found in the last 3 years for the borrower or the site. That is common for small firms; still check court and property records.';
+    : rawTotal === 0
+      ? 'The news sources sent back no results at all, which usually means they are limiting requests from this website’s server rather than that there is no news. Try again in a few minutes, or use the “Search it yourself” links below.'
+      : `The news sources returned ${rawTotal} article(s), but none named the borrower, principal, project or address, so none were kept. That is common for small firms; use the links below to double-check, and still check court and property records.`;
   return { summary, items: items.slice(0, 15), citations: [] };
 }

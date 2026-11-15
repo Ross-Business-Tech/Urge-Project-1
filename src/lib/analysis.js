@@ -156,7 +156,7 @@ export function analyze(deal) {
 
   // --- Mission alignment
   const mission = [];
-  mission.push({ label: 'BIPOC-owned firm', level: deal.bipocOwned === 'Yes' ? 'green' : deal.bipocOwned === 'No' ? 'yellow' : 'yellow',
+  mission.push({ label: 'B.I.P.O.C.-owned firm', level: deal.bipocOwned === 'Yes' ? 'green' : deal.bipocOwned === 'No' ? 'yellow' : 'yellow',
     text: deal.bipocOwned === 'Yes' ? `${deal.firmName || 'The firm'} is BIPOC-owned.` : deal.bipocOwned === 'No' ? 'The firm is not BIPOC-owned.' : 'Ownership demographics not provided.' });
   mission.push({ label: 'Potential scale / acceleration', level: has(deal.growthPlan) ? 'green' : 'yellow',
     text: has(deal.growthPlan) ? deal.growthPlan : 'Growth plan not provided.' });
@@ -175,6 +175,43 @@ export function analyze(deal) {
   ];
   const overall = worst(merits.map((m) => m.level));
 
+  // --- EBIARA memo extras (informational: they add flags but never change the merit ratings)
+  const successFee = loan * (num(deal.successFeePct) / 100);
+  const totalObligations = totalOwed + successFee;
+  const aggregateCoverage = totalObligations > 0 && exitProceeds > 0 ? exitProceeds / totalObligations : null;
+  const ioMonths = num(deal.interestOnlyMonths);
+  const amortStartMonth = has(deal.amortizationYears) && ioMonths > 0 && ioMonths < term ? ioMonths + 1 : null;
+  const proj = (deal.projectProjections || []).filter((r) => has(r.year)).map((r) => {
+    const noi = num(r.revenue) - num(r.expenses);
+    const ds = num(r.debtService);
+    return { year: r.year, revenue: num(r.revenue), expenses: num(r.expenses), noi, debtService: ds, dscr: ds > 0 ? noi / ds : null };
+  });
+  const projNoi = proj.map((r) => r.noi);
+  const projDscrs = proj.map((r) => r.dscr).filter((x) => x !== null);
+  const minDscr = projDscrs.length ? Math.min(...projDscrs) : null;
+  const firstDscr = projDscrs.length ? projDscrs[0] : null;
+  const lastDscr = projDscrs.length ? projDscrs[projDscrs.length - 1] : null;
+  const resUnits = num(deal.residentialUnits);
+  const affordablePct = resUnits > 0 && has(deal.affordableUnits) ? num(deal.affordableUnits) / resUnits : null;
+  const sqft = num(deal.squareFeet);
+  const costPerSf = sqft > 0 && useTotal > 0 ? useTotal / sqft : null;
+  const useCostPerSf = sqft > 0 ? (deal.projectUses || []).map((r) => num(r.amount) / sqft) : [];
+  const collateralRent = sum(deal.collateralProperties || [], 'annualRent');
+  const collateralValue = sum(deal.collateralProperties || [], 'marketValue');
+  const collateralCoverage = loan > 0 && collateralValue > 0 ? collateralValue / loan : null;
+
+  if (minDscr !== null) {
+    const l = minDscr >= 1.2 ? 'green' : minDscr >= 1.0 ? 'yellow' : 'red';
+    add('Project cash flow', l, `Underwritten project DSCR as low as ${minDscr.toFixed(2)}x`,
+      `Net operating income divided by debt service in the project projections ranges from ${minDscr.toFixed(2)}x to ${Math.max(...projDscrs).toFixed(2)}x. Rule used: 1.20x+ = green; 1.00–1.19x = yellow; under 1.00x = red.`);
+  }
+  if (has(deal.guarantorDscr)) {
+    const g = num(deal.guarantorDscr);
+    const l = g >= 1.25 ? 'green' : g >= 1.0 ? 'yellow' : 'red';
+    add('Guarantor', l, `Guarantor portfolio DSCR of ${g.toFixed(2)}x`,
+      `Secondary repayment relies on ${deal.guarantorName || 'the guarantor'}’s existing portfolio. Rule used: 1.25x+ = green; 1.00–1.24x = yellow; under 1.00x = red.`);
+  }
+
   // --- News found by the news check
   for (const n of deal.news || []) {
     if (!n.headline || n.level === 'green' || /^\(?No warning words/.test(n.relevance || '')) continue;
@@ -192,5 +229,8 @@ export function analyze(deal) {
     fin, actuals, projections, growth, avgActualGrowth,
     flags, mission, missionLevel, merits, overall,
     loanShareOfProject: projectCost > 0 ? loan / projectCost : null,
+    successFee, totalObligations, aggregateCoverage, ioMonths, amortStartMonth,
+    proj, projNoi, minDscr, firstDscr, lastDscr, affordablePct, costPerSf, useCostPerSf,
+    collateralRent, collateralValue, collateralCoverage,
   };
 }

@@ -48,11 +48,17 @@ export function checkAtypical(deal) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(deal.memoDate) || Number.isNaN(d.getTime())) add('Data quality', 'fail', `Memo date is not a valid date: "${deal.memoDate}"`);
     else if (d.getFullYear() < A.memoYearRange[0] || d.getFullYear() > A.memoYearRange[1]) add('Atypical', 'warn', `Memo date looks off: ${deal.memoDate}`, `Expected a year between ${A.memoYearRange[0]} and ${A.memoYearRange[1]}.`);
   }
-  for (const k of ['bipocOwned', 'impactArea']) if (has(deal[k]) && !['Yes', 'No'].includes(deal[k])) add('Data quality', 'warn', `${labelOf(k)} is "${deal[k]}", not Yes or No`, 'The rating rules only understand Yes or No.');
+  for (const k of ['bipocOwned', 'impactArea', 'interestReserve', 'siteControl', 'previouslyVacant']) if (has(deal[k]) && !['Yes', 'No'].includes(deal[k])) add('Data quality', 'warn', `${labelOf(k)} is "${deal[k]}", not Yes or No`, 'The rating rules only understand Yes or No.');
 
   // --- Blanks (beyond the required fields, which are reported separately)
   const required = ['firmName', 'principalName', 'loanAmount', 'interestRate', 'termMonths', 'loanPurpose', 'projectName', 'totalProjectCost', 'exitProceeds'];
-  const skip = new Set(['fundName', 'underwriterNotes', 'repaymentStructure', 'growthPlan', 'news', 'newsSummary', 'newsCheckedAt']);
+  // EBIARA-format extras (loan terms, project breakdown, underwriting, guarantor, exhibits) are optional:
+  // the memo leaves their parts out when blank, so they are not counted here.
+  const EXTRAS = ['fundTagline', 'relationshipManager', 'sponsors', 'interestOnlyMonths', 'amortizationYears', 'successFeePct', 'interestReserve',
+    'constructionJobs', 'residentialUnits', 'affordableUnits', 'amiPct', 'commercialSqFt', 'constructionType', 'constructionStart', 'siteControl',
+    'previouslyVacant', 'projectProjections', 'rentHaircutPct', 'borrowerVacancyPct', 'underwrittenVacancyPct', 'underwritingNote',
+    'primaryRepayment', 'secondaryRepayment', 'guarantorName', 'guarantorPortfolio', 'guarantorDscr', 'collateralProperties', 'risks', 'taNeeds', 'approvers'];
+  const skip = new Set(['fundName', 'underwriterNotes', 'repaymentStructure', 'growthPlan', 'news', 'newsSummary', 'newsCheckedAt', ...EXTRAS]);
   const keys = Object.keys(emptyDeal).filter((k) => !skip.has(k));
   const blank = keys.filter((k) => isBlank(deal[k]));
   const optionalBlank = blank.filter((k) => !required.includes(k));

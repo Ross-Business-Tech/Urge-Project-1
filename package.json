@@ -3,11 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "start": "node server.mjs",
     "stress": "node tests/stress.mjs",
     "smoke": "node scripts/smoke-test.cjs",
     "publish:preview": "node scripts/herenow-publish.mjs preview"

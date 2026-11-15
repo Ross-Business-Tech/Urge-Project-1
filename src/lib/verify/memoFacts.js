@@ -16,7 +16,7 @@ const R = (s) => new RegExp(s);
 // key: deal field. pats: [regex, capture group (default 1), converter(match)]. shown: what an UNEDITED memo prints.
 export const FIELDS = [
   { key: 'loanAmount', label: 'Loan amount', kind: '$', mentions: 6, shown: (d) => num(d.loanAmount), pats: [
-    [R(AMT + '\\s+enterprise loan')], [R('\\ba\\s+' + AMT + '\\s+loan\\b')], [R('requests a\\s+' + AMT)],
+    [R('Approval of a\\s+' + AMT)], [R('\\ba\\s+' + AMT + '\\s+loan\\b')], [R('requests a\\s+' + AMT)],
     [R('would lend\\s+' + AMT + '\\s+to')], [R('annual interest on\\s+' + AMT + '\\s+is')], [R('Loan amount\\s+' + AMT)] ] },
   { key: 'interestRate', label: 'Interest rate', kind: '%', shown: (d) => num(d.interestRate), pats: [
     [R('loan from [^%]{0,80}?\\bat\\s+' + PCT + '% interest')], [R('At\\s+' + PCT + '%, annual interest')], [R('Interest rate\\s+' + PCT + '% per year')] ] },
