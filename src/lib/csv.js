@@ -12,6 +12,7 @@ export const TABLES = {
   projectProjections: ['year', 'revenue', 'expenses', 'debtService'],
   collateralProperties: ['description', 'annualRent', 'marketValue'],
   risks: ['risk', 'mitigant'],
+  affordableTiers: ['units', 'ami'],
   approvers: ['name', 'title'],
   repaymentOptions: ['option'],
   team: ['name', 'company', 'role', 'bio'],

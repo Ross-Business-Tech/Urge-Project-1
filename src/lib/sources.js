@@ -8,21 +8,21 @@ import { safeUrl } from './news.js';
 const S = {
   1: '1. Memo details', 2: '2. Borrower', 3: '3. Loan request', 4: '4. Project',
   5: '5. Firm financials', 6: '6. Project cash flow & underwriting', 7: '7. Loan sizing & repayment',
-  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team',
+  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team', 11: '11. Neighborhood impact calculator',
 };
 export const FIELDS = {
   fundName: ['Fund name', 1], fundTagline: ['Fund tagline', 1], memoDate: ['Memo date', 1], relationshipManager: ['Relationship manager', 1],
   preparedBy: ['Underwriter', 1], committee: ['Investment committee', 1],
   firmName: ['Borrower firm name', 2], hqCity: ['Firm location', 2], principalName: ['Principal name', 2], principalTitle: ['Principal title', 2],
-  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], bipocOwned: ['BIPOC-owned firm?', 2],
+  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], developerStage: ['Borrower stage', 2], bipocOwned: ['BIPOC-owned firm?', 2],
   sponsors: ['Sponsors / guarantors', 2], principalBio: ['Principal bio / background', 2], orgStructure: ['Organizational structure', 2],
   loanAmount: ['Loan amount', 3], interestRate: ['Interest rate', 3], termMonths: ['Term (months)', 3], originationFee: ['Origination fee', 3],
   repaymentStructure: ['Repayment structure', 3], interestOnlyMonths: ['Interest-only period (months)', 3], amortizationYears: ['Amortization after interest-only (years)', 3],
   successFeePct: ['Success fee', 3], interestReserve: ['Interest reserve?', 3],
   loanPurpose: ['Reason for loan', 3], collateral: ['Collateral / guarantees', 3],
   urgeUses: ['How the loan will be used', 3],
-  projectName: ['Project name', 4], projectAddress: ['Location / address', 4], assetType: ['Property type', 4], squareFeet: ['Total size (sq ft)', 4],
-  residentialUnits: ['Residential units', 4], affordableUnits: ['Affordable units', 4], amiPct: ['Affordable at % of AMI', 4], commercialSqFt: ['Commercial space (sq ft)', 4],
+  projectName: ['Project name', 4], projectAddress: ['Location / address', 4], projectType: ['Project type', 4], assetType: ['Project description', 4], squareFeet: ['Total size (sq ft)', 4],
+  residentialUnits: ['Residential units', 4], affordableTiers: ['Affordable units by AMI level', 4], targetPopulation: ['Who the project serves', 4], affordableUnits: ['Affordable units', 4], amiPct: ['Affordable at % of AMI', 4], commercialSqFt: ['Commercial space (sq ft)', 4],
   constructionType: ['Construction type', 4], constructionStart: ['Construction start', 4], siteControl: ['Site control?', 4], previouslyVacant: ['Previously vacant / blighted?', 4],
   totalProjectCost: ['Total project cost', 4], walkScore: ['Walk Score', 4], neighborhood: ['What’s around the site', 4],
   impactArea: ['In a neighborhood impact area?', 4], jobsCreated: ['Permanent jobs created / supported', 4], constructionJobs: ['Construction jobs', 4], growthPlan: ['Growth plan', 4],
@@ -36,12 +36,12 @@ export const FIELDS = {
   guarantorName: ['Guarantor', 7], guarantorPortfolio: ['Guarantor’s existing portfolio', 7], guarantorDscr: ['Guarantor portfolio DSCR', 7],
   collateralProperties: ['Collateral properties', 7],
   risks: ['Risks & mitigants', 8], taNeeds: ['Anticipated technical assistance needs', 8], approvers: ['Approvals', 8],
-  news: ['News items for the memo', 9], team: ['Team members', 10],
+  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11],
 };
 const COLS = { amount: 'amount', revenue: 'revenue', netIncome: 'net income', label: 'item', year: 'year', expenses: 'operating expenses', debtService: 'debt service', annualRent: 'annual rent', marketValue: 'market value' };
 
 const MONEY = new Set(['amount', 'revenue', 'netIncome', 'expenses', 'debtService', 'annualRent', 'marketValue', 'loanAmount', 'totalProjectCost', 'totalAssets', 'totalLiabilities', 'totalEquity', 'cash', 'exitProceeds']);
-const PCT = new Set(['interestRate', 'originationFee', 'ownerSharePct', 'successFeePct', 'amiPct', 'rentHaircutPct', 'borrowerVacancyPct', 'underwrittenVacancyPct']);
+const PCT = new Set(['propertyTaxRatePct', 'interestRate', 'originationFee', 'ownerSharePct', 'successFeePct', 'amiPct', 'rentHaircutPct', 'borrowerVacancyPct', 'underwrittenVacancyPct']);
 const fieldLabel = (f) => FIELDS[f]?.[0] || f;
 
 // Where a typed-in value came from, based on how the deal was loaded.
@@ -129,7 +129,7 @@ const CALCS = {
   successFee: (d, a) => ({ label: 'Success fee in dollars', formula: `${money(a.loan)} loan × ${num(d.successFeePct)}% success fee = ${money(a.successFee)}`, inputs: ['loanAmount', 'successFeePct'] }),
   totalObligations: (d, a) => ({ label: `Total owed to ${d.fundName || 'the fund'}`, formula: `${money(a.loan)} principal + ${money(a.totalInterest)} interest + ${money(a.successFee)} success fee = ${money(a.totalObligations)}`, inputs: ['loanAmount', 'interestRate', 'termMonths', 'successFeePct'] }),
   aggregateCoverage: (d, a) => ({ label: 'Aggregate repayment coverage', formula: `${money(a.exitProceeds)} expected proceeds ÷ ${money(a.totalObligations)} total obligations = ${fx(a.aggregateCoverage)}`, inputs: ['exitProceeds', 'loanAmount', 'interestRate', 'termMonths', 'successFeePct'] }),
-  amortStart: (d, a) => ({ label: 'First amortizing payment', formula: `${a.ioMonths} interest-only months + 1 = month ${a.amortStartMonth}`, inputs: ['interestOnlyMonths'] }),
+  amortStart: (d, a) => ({ label: 'First amortizing payment', formula: `${a.schedule.ioMonths} interest-only months + 1 = month ${a.schedule.amortStart}`, inputs: ['interestOnlyMonths', 'repaymentStructure'] }),
   noi: (d, a, i) => {
     const r = a.proj[Number(i)] || {};
     const k = (d.projectProjections || []).findIndex((x) => String(x.year) === String(r.year));
@@ -150,6 +150,15 @@ const CALCS = {
   collateralRent: (d, a) => ({ label: 'Collateral: total annual rent', formula: `${(d.collateralProperties || []).map((r) => money(r.annualRent)).join(' + ')} = ${money(a.collateralRent)}`, inputs: (d.collateralProperties || []).map((_, i) => `collateralProperties.${i}.annualRent`) }),
   collateralValue: (d, a) => ({ label: 'Collateral: total market value', formula: `${(d.collateralProperties || []).map((r) => money(r.marketValue)).join(' + ')} = ${money(a.collateralValue)}`, inputs: (d.collateralProperties || []).map((_, i) => `collateralProperties.${i}.marketValue`) }),
   collateralCoverage: (d, a) => ({ label: 'Collateral value vs. loan', formula: `${money(a.collateralValue)} collateral value ÷ ${money(a.loan)} loan = ${fx(a.collateralCoverage)}`, inputs: ['collateralProperties', 'loanAmount'] }),
+  affordableCount: (d, a) => ({ label: 'Affordable units', formula: a.tiers.length ? `${a.tiers.map((t) => `${t.units} at ${t.ami}% AMI`).join(' + ')} = ${a.affordableCount} units` : `Affordable units: ${a.affordableCount}`, inputs: a.tiers.length ? a.tiers.map((_, i) => `affordableTiers.${i}.units`) : ['affordableUnits'] }),
+  ioPayment: (d, a) => ({ label: 'Monthly payment while interest-only', formula: `${money(a.loan)} loan × ${num(d.interestRate)}% ÷ 12 = ${money(a.schedule.monthlyIoPayment)} per month`, inputs: ['loanAmount', 'interestRate'] }),
+  amortPayment: (d, a) => ({ label: 'Monthly payment once amortizing', formula: `${money(a.loan)} paid down over ${a.schedule.amortYears} years at ${num(d.interestRate)}% (standard loan payment formula) = ${money(a.schedule.amortPayment)} per month`, inputs: ['loanAmount', 'interestRate', 'amortizationYears'] }),
+  balloon: (d, a) => ({ label: 'Principal still owed at maturity (balloon)', formula: a.schedule.amortPayment !== null ? `${money(a.loan)} minus the principal repaid by ${Math.max(0, a.term - a.schedule.ioMonths)} monthly payments of ${money(a.schedule.amortPayment)} = ${money(a.schedule.balloon)}` : `Interest-only, so the full ${money(a.loan)} is due at maturity`, inputs: ['loanAmount', 'interestRate', 'termMonths', 'interestOnlyMonths', 'amortizationYears'] }),
+  impact: (d, a, key) => {
+    const r = a.impact?.rows.find((x) => x.key === key) || {};
+    const fmt = (v) => (r.kind === '$' ? money(v) : Math.round(v).toLocaleString());
+    return { label: `Neighborhood impact: ${r.label || key}`, formula: `${r.basis}. Low ${fmt(r.low)}, high ${fmt(r.high)} (${r.when}).`, inputs: ['totalProjectCost', 'residentialUnits', 'commercialSqFt', 'jobsCreated', 'constructionJobs', 'propertyTaxRatePct'].filter((f) => has(d[f])) };
+  },
   newsCount: (d, a) => ({ label: 'Red and yellow review items', formula: `The app counted the automatic checks in the “Underwriter review: automated flags” section: ${a.flags.filter((f) => f.level === 'red').length} red and ${a.flags.filter((f) => f.level === 'yellow').length} yellow. Each flag there shows its own rule.`, inputs: [] }),
 };
 

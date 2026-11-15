@@ -10,6 +10,9 @@ export const rubric = {
   repaymentCushionMonths: 3, // months between repayment event and maturity
   walkScore: { green: 70 },
   jobsGreen: 25,
+  // Mission: borrower stage. Emerging / Early-emerging developers count as a mission fit.
+  // (When the stage is left blank, the older BIPOC-owned answer is used instead.)
+  emergingStages: ['Emerging', 'Early-emerging'],
   missionGreensForGreen: 3,
   missionGreensForYellow: 2,
   // Plausibility ranges (warn if outside)

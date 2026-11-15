@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { searchNews, searchNewsFree, manualSearches } from '../lib/news.js';
+import { analyze, suggestStage, STAGES } from '../lib/analysis.js';
+import { moneyShort } from '../lib/format.js';
 
 const YES_NO = ['', 'Yes', 'No'];
 
@@ -118,6 +120,24 @@ const amountCols = [
 ];
 
 const YES_NO_BOTH = ['', 'New construction', 'Rehab', 'Both'];
+const PROJECT_TYPES = ['', 'Multifamily residential', 'Multifamily mixed-use', 'Hotel / hospitality', 'Office', 'Co-working space', 'Other'];
+const REPAYMENT = ['Interest-only, principal due at maturity', 'Interest-only period, then amortizing', 'Fully amortizing', 'Accrued interest, all due at maturity'];
+
+// Live preview of the neighborhood impact estimate (the same numbers go into the memo).
+function ImpactPreview({ deal }) {
+  const impact = analyze(deal).impact;
+  if (!impact) return <p className="small field wide">Fill in the total project cost, residential units or commercial space (section 4) to see the estimate.</p>;
+  const show = (r) => (r.kind === '$' ? (Math.round(r.low) === Math.round(r.high) ? moneyShort(r.low) : `${moneyShort(r.low)} – ${moneyShort(r.high)}`) : (Math.round(r.low) === Math.round(r.high) ? Math.round(r.low) : `${Math.round(r.low)} – ${Math.round(r.high)}`));
+  return (
+    <div className="field wide">
+      <p className="small">Estimated from this deal’s own numbers (total cost, units, commercial space, jobs). Ranges, not exact figures: a screening estimate for the memo, not an economic impact study.</p>
+      <table className="impact-table">
+        <thead><tr><th>Impact</th><th className="num">Estimate</th></tr></thead>
+        <tbody>{impact.rows.map((r) => <tr key={r.key}><td>{r.label}<small>{r.basis}</small></td><td className="num">{show(r)}<small>{r.when}</small></td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function DealForm({ deal, set }) {
   const p = { deal, set };
@@ -141,7 +161,9 @@ export default function DealForm({ deal, set }) {
         <Field {...p} name="principalTitle" label="Principal title" />
         <Field {...p} name="yearsExperience" label="Years of experience" type="number" />
         <Field {...p} name="projectsCompleted" label="Projects completed" type="number" />
-        <Field {...p} name="bipocOwned" label="BIPOC-owned firm?" options={YES_NO} />
+        <Field {...p} name="developerStage" label="Borrower stage" options={['', ...STAGES]}
+          hint={suggestStage(deal) ? `Track record suggests: ${suggestStage(deal)}${deal.developerStage && deal.developerStage !== suggestStage(deal) ? ' (you picked differently, which is fine)' : ''}` : 'Emerging, early-emerging or established developer.'} />
+        <Field {...p} name="bipocOwned" label="BIPOC-owned firm? (metric sheet only)" options={YES_NO} />
         <Field {...p} name="sponsors" label="Sponsors / guarantors" />
         <Field {...p} name="principalBio" label="Principal bio / background" type="textarea" hint="Paste from the borrower’s submission. Cross-check against public sources." />
         <Field {...p} name="orgStructure" label="Organizational structure" type="textarea" hint="Who owns what, and which entity receives the money." />
@@ -153,9 +175,9 @@ export default function DealForm({ deal, set }) {
         <Field {...p} name="interestRate" label="Interest rate" type="number" suffix="%" />
         <Field {...p} name="termMonths" label="Term" type="number" suffix="months" />
         <Field {...p} name="originationFee" label="Origination fee" type="number" suffix="%" />
-        <Field {...p} name="repaymentStructure" label="Repayment structure" options={['Interest-only, principal due at maturity', 'Monthly amortizing', 'Accrued interest, all due at maturity']} wide />
-        <Field {...p} name="interestOnlyMonths" label="Interest-only period" type="number" suffix="months" />
-        <Field {...p} name="amortizationYears" label="Then amortize over" type="number" suffix="years" hint="Leave blank if interest-only to maturity." />
+        <Field {...p} name="repaymentStructure" label="Repayment structure" options={REPAYMENT} wide />
+        <Field {...p} name="interestOnlyMonths" label="Interest-only period" type="number" suffix="months" hint="For “interest-only period, then amortizing”. Blank = the whole term when the loan is interest-only." />
+        <Field {...p} name="amortizationYears" label="Amortize over" type="number" suffix="years" hint="For amortizing loans: the schedule principal is paid on (e.g. 15)." />
         <Field {...p} name="successFeePct" label="Success fee" type="number" suffix="% of loan" />
         <Field {...p} name="interestReserve" label="Interest reserve?" options={YES_NO} />
         <Field {...p} name="loanPurpose" label="Reason for loan" type="textarea" />
@@ -167,11 +189,16 @@ export default function DealForm({ deal, set }) {
         <legend>4. Project</legend>
         <Field {...p} name="projectName" label="Project name" />
         <Field {...p} name="projectAddress" label="Location / address" />
-        <Field {...p} name="assetType" label="Property type" />
+        <Field {...p} name="projectType" label="Project type" options={PROJECT_TYPES} />
+        <Field {...p} name="assetType" label="Project description" hint="e.g. Ground-floor retail and office, apartments above" />
         <Field {...p} name="squareFeet" label="Total size" type="number" suffix="sq ft" />
         <Field {...p} name="residentialUnits" label="Residential units" type="number" />
-        <Field {...p} name="affordableUnits" label="Affordable units" type="number" />
-        <Field {...p} name="amiPct" label="Affordable at" type="number" suffix="% AMI" />
+        <RowTable {...p} name="affordableTiers" label="Affordable units by AMI level" hint="One row per income level, e.g. 3 units at 50% AMI and 60 units at 80% AMI (AMI = area median income)."
+          columns={[
+            { key: 'units', label: 'Affordable units', number: true },
+            { key: 'ami', label: 'At % of AMI', number: true },
+          ]} />
+        <Field {...p} name="targetPopulation" label="Who the project serves" type="textarea" hint="Target population or community, e.g. working families, seniors, local small businesses." />
         <Field {...p} name="commercialSqFt" label="Commercial space" type="number" suffix="sq ft" />
         <Field {...p} name="constructionType" label="Construction type" options={YES_NO_BOTH} />
         <Field {...p} name="constructionStart" label="Construction start" hint="e.g. Spring 2027" />
@@ -277,6 +304,12 @@ export default function DealForm({ deal, set }) {
             { key: 'bio', label: 'Short bio', flex: 2 },
           ]} />
         <Field {...p} name="underwriterNotes" label="Underwriter notes (optional)" type="textarea" hint="Anything else the committee should know. Added to the memo as-is." />
+      </fieldset>
+
+      <fieldset>
+        <legend>11. Neighborhood impact calculator</legend>
+        <ImpactPreview deal={deal} />
+        <Field {...p} name="propertyTaxRatePct" label="Local property tax rate (optional)" type="number" suffix="% of cost" hint="Leave blank to use a 1.5%–3% range." />
       </fieldset>
     </div>
   );
