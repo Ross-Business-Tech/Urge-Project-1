@@ -13,6 +13,7 @@ export const TABLES = {
   collateralProperties: ['description', 'annualRent', 'marketValue'],
   risks: ['risk', 'mitigant'],
   affordableTiers: ['units', 'ami'],
+  customSections: ['title', 'position', 'body', 'templateId'],
   approvers: ['name', 'title'],
   repaymentOptions: ['option'],
   team: ['name', 'company', 'role', 'bio'],

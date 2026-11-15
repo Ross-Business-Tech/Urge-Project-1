@@ -8,13 +8,13 @@ import { safeUrl } from './news.js';
 const S = {
   1: '1. Memo details', 2: '2. Borrower', 3: '3. Loan request', 4: '4. Project',
   5: '5. Firm financials', 6: '6. Project cash flow & underwriting', 7: '7. Loan sizing & repayment',
-  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team', 11: '11. Neighborhood impact calculator',
+  8: '8. Risks, approvals & exhibits', 9: '9. News check', 10: '10. Development team', 11: '11. Neighborhood impact calculator', 12: '12. Extra memo sections',
 };
 export const FIELDS = {
   fundName: ['Fund name', 1], fundTagline: ['Fund tagline', 1], memoDate: ['Memo date', 1], relationshipManager: ['Relationship manager', 1],
   preparedBy: ['Underwriter', 1], committee: ['Investment committee', 1],
   firmName: ['Borrower firm name', 2], hqCity: ['Firm location', 2], principalName: ['Principal name', 2], principalTitle: ['Principal title', 2],
-  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], developerStage: ['Borrower stage', 2], bipocOwned: ['BIPOC-owned firm?', 2],
+  yearsExperience: ['Years of experience', 2], projectsCompleted: ['Projects completed', 2], developerStage: ['Borrower stage', 2],
   sponsors: ['Sponsors / guarantors', 2], principalBio: ['Principal bio / background', 2], orgStructure: ['Organizational structure', 2],
   loanAmount: ['Loan amount', 3], interestRate: ['Interest rate', 3], termMonths: ['Term (months)', 3], originationFee: ['Origination fee', 3],
   repaymentStructure: ['Repayment structure', 3], interestOnlyMonths: ['Interest-only period (months)', 3], amortizationYears: ['Amortization after interest-only (years)', 3],
@@ -36,7 +36,7 @@ export const FIELDS = {
   guarantorName: ['Guarantor', 7], guarantorPortfolio: ['Guarantor’s existing portfolio', 7], guarantorDscr: ['Guarantor portfolio DSCR', 7],
   collateralProperties: ['Collateral properties', 7],
   risks: ['Risks & mitigants', 8], taNeeds: ['Anticipated technical assistance needs', 8], approvers: ['Approvals', 8],
-  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11],
+  news: ['News items for the memo', 9], team: ['Team members', 10], propertyTaxRatePct: ['Local property tax rate', 11], customSections: ['Extra memo sections', 12],
 };
 const COLS = { amount: 'amount', revenue: 'revenue', netIncome: 'net income', label: 'item', year: 'year', expenses: 'operating expenses', debtService: 'debt service', annualRent: 'annual rent', marketValue: 'market value' };
 

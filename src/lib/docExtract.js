@@ -10,7 +10,7 @@ import { aiError } from './news.js';
 const MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-sonnet-4.5'];
 
 // The news check fills news items; the memo-writer fills these by hand.
-const SKIP = new Set(['news', 'newsSummary', 'newsCheckedAt', 'fundName', 'fundTagline', 'memoDate', 'relationshipManager', 'preparedBy', 'committee', 'underwriterNotes', 'approvers', 'taNeeds', 'risks', 'rentHaircutPct', 'underwrittenVacancyPct', 'underwritingNote']);
+const SKIP = new Set(['news', 'newsSummary', 'newsCheckedAt', 'fundName', 'fundTagline', 'memoDate', 'relationshipManager', 'preparedBy', 'committee', 'underwriterNotes', 'approvers', 'taNeeds', 'risks', 'customSections', 'rentHaircutPct', 'underwrittenVacancyPct', 'underwritingNote']);
 
 const NUMBER = new Set([
   'yearsExperience', 'projectsCompleted', 'loanAmount', 'interestRate', 'termMonths', 'originationFee', 'squareFeet',
@@ -20,7 +20,6 @@ const NUMBER = new Set([
 ]);
 const NUMBER_COLS = new Set(['amount', 'revenue', 'netIncome', 'year', 'expenses', 'debtService', 'annualRent', 'marketValue', 'units', 'ami']);
 const CHOICES = {
-  bipocOwned: ['Yes', 'No'],
   impactArea: ['Yes', 'No'],
   interestReserve: ['Yes', 'No'],
   siteControl: ['Yes', 'No'],

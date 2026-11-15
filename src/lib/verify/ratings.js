@@ -7,6 +7,14 @@ const RANK = { green: 0, yellow: 1, red: 2 };
 const worst = (ls) => ls.reduce((w, l) => (RANK[l] > RANK[w] ? l : w), 'green');
 const th = (v, greenOk, yellowOk) => (greenOk(v) ? 'green' : yellowOk(v) ? 'yellow' : 'red');
 
+// Borrower stage suggested from the track record, using the thresholds written in rubric.js.
+function suggested(deal) {
+  if (!has(deal.yearsExperience) && !has(deal.projectsCompleted)) return '';
+  const y = num(deal.yearsExperience), p = num(deal.projectsCompleted), S = R.stageSuggestion;
+  if (y < S.earlyYears || (has(deal.projectsCompleted) && p < S.earlyProjects)) return 'Early-emerging';
+  return y < S.establishedYears && p < S.establishedProjects ? 'Emerging' : 'Established';
+}
+
 // Returns { key: level } for each criterion we can rate from the data.
 export function rateIndependent(deal) {
   const out = {};
@@ -37,7 +45,7 @@ export function rateIndependent(deal) {
   if (has(deal.walkScore)) out.walk = num(deal.walkScore) >= R.walkScore.green ? 'green' : 'yellow';
 
   const greens = [
-    has(deal.developerStage) ? R.emergingStages.includes(deal.developerStage) : deal.bipocOwned === 'Yes',
+    R.emergingStages.includes(has(deal.developerStage) ? deal.developerStage : suggested(deal)),
     has(deal.growthPlan),
     num(deal.jobsCreated) >= R.jobsGreen,
     deal.impactArea === 'Yes',

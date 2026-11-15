@@ -12,6 +12,7 @@ import { readFactsFromDom } from './lib/verify/memoFacts.js';
 import VerificationReport from './components/VerificationReport.jsx';
 import { sampleLoans } from './lib/sampleLoans.js';
 import { randomDeal, MAX_MISTAKES } from './lib/randomDeal.js';
+import { loadTemplates, saveTemplates } from './lib/sections.js';
 import './App.css';
 
 const STORE = 'memo-drafter-deal-v1';
@@ -78,6 +79,10 @@ export default function App() {
   const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
   const [compact, setCompact] = useState(false); // scrolled down: the mode switch shrinks to just its icons
   const [spin, setSpin] = useState(0); // changes whenever a new deal loads so the form visibly refills
+
+  // Sections added to "all future memos" (kept in this browser).
+  const [templates, setTemplatesState] = useState(loadTemplates);
+  const setTemplates = (list) => { setTemplatesState(list); saveTemplates(list); };
 
   useEffect(() => {
     try { localStorage.setItem(STORE, JSON.stringify(deal)); } catch { /* storage unavailable */ }
@@ -147,7 +152,7 @@ export default function App() {
   };
 
   const generate = () => {
-    setGenerated({ deal: structuredClone(deal), origins: structuredClone(origins), id: Date.now() });
+    setGenerated({ deal: { ...structuredClone(deal), templateSections: structuredClone(templates) }, origins: structuredClone(origins), id: Date.now() });
     setCard(null);
     setTab('memo');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -317,7 +322,7 @@ export default function App() {
         </section>
 
         <div key={spin} className={spin ? 'shuffle' : ''}>
-          <DealForm deal={deal} set={editDeal} />
+          <DealForm deal={deal} set={editDeal} templates={templates} setTemplates={setTemplates} />
         </div>
 
         <div className="sticky-cta">

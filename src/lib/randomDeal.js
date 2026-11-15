@@ -96,7 +96,7 @@ export const BLANKABLE = {
   committee: 'Investment committee', preparedBy: 'Prepared by', hqCity: 'Firm location', principalTitle: 'Principal title', principalBio: 'Principal bio',
   orgStructure: 'Organizational structure', collateral: 'Collateral', projectAddress: 'Project address', assetType: 'Property type', neighborhood: 'Neighborhood description',
   team: 'Development team', repaymentOptions: 'Repayment options', projectsCompleted: 'Projects completed', squareFeet: 'Size (sq ft)', jobsCreated: 'Jobs created', walkScore: 'Walk Score',
-  bipocOwned: 'BIPOC-owned answer', impactArea: 'Impact-area answer', loanPurpose: 'Reason for loan', projectName: 'Project name', principalName: 'Principal name', firmName: 'Borrower firm name',
+  impactArea: 'Impact-area answer', loanPurpose: 'Reason for loan', projectName: 'Project name', principalName: 'Principal name', firmName: 'Borrower firm name',
 };
 const BLANK_DEPENDS = {};
 
@@ -114,7 +114,7 @@ export const CHAOS = {
   'extreme-leverage': { touches: ['totalAssets', 'totalLiabilities', 'totalEquity'], level: 'warn', re: /Very high leverage/, apply: (d) => { d.totalLiabilities = String(Number(d.totalEquity) * 30); d.totalAssets = String(Number(d.totalLiabilities) + Number(d.totalEquity)); } },
   'duplicate-team-member': { group: 'team', touches: ['team'], level: 'warn', re: /same name/, apply: (d) => { d.team[1].name = d.team[0].name; } },
   'thin-team-member': { group: 'team', touches: ['team'], level: 'warn', re: /missing a name, role or bio/, apply: (d) => { d.team[1].role = ''; d.team[1].bio = ''; } },
-  'wrong-answer': { touches: ['bipocOwned'], level: 'warn', re: /not Yes or No/, apply: (d) => { d.bipocOwned = 'maybe'; } },
+  'wrong-answer': { touches: ['impactArea'], level: 'warn', re: /not Yes or No/, apply: (d) => { d.impactArea = 'maybe'; } },
 };
 
 export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
@@ -157,7 +157,7 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
   const projName = `${pick(PROJ_A)} ${pick(PROJ_B)}`;
   const greenCount = int(...P.greens);
   const flags = shuffle([0, 1, 2, 3]).slice(0, greenCount);
-  const bipoc = flags.includes(0);
+  const emerging = flags.includes(0);
   const impact = flags.includes(1);
   const hasGrowth = flags.includes(2);
   const jobs = flags.includes(3) ? int(25, 80) : int(0, 20);
@@ -217,7 +217,7 @@ export function randomDeal(seed = 1, { profile = 'any', mistakes = 0 } = {}) {
     hqCity: 'Detroit, MI',
     yearsExperience: String(years),
     projectsCompleted: String(projects),
-    bipocOwned: bipoc ? 'Yes' : 'No',
+    developerStage: emerging ? 'Emerging' : 'Established',
     principalBio: `${principal} spent ${Math.max(1, years - int(1, 4))} years in construction and development before founding ${firm.replace(/ LLC$/, '')}. The firm has completed ${projects} projects totaling roughly ${th(sqft * (projects || 1) / 2, 1000).toLocaleString('en-US')} sq ft.`,
     loanAmount: String(loan),
     interestRate: String(rate),

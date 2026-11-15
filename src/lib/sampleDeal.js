@@ -13,7 +13,6 @@ export const emptyDeal = {
   yearsExperience: '',
   projectsCompleted: '',
   developerStage: '',
-  bipocOwned: '',
   sponsors: '',
   principalBio: '',
   loanAmount: '',
@@ -78,6 +77,7 @@ export const emptyDeal = {
   taNeeds: '',
   approvers: [{ name: '', title: 'Chief Operating Officer' }, { name: '', title: 'Fund Manager' }],
   team: [],
+  customSections: [],
   news: [],
   newsSummary: '',
   newsCheckedAt: '',
@@ -98,7 +98,6 @@ export const sampleDeal = {
   yearsExperience: '9',
   projectsCompleted: '6',
   developerStage: 'Emerging',
-  bipocOwned: 'Yes',
   sponsors: 'Jordan Avery (personal guarantor)',
   principalBio:
     'Jordan Avery spent six years as a project manager at a regional general contractor before founding Northbrook in 2019. The firm has completed six small commercial and mixed-use projects totaling roughly 48,000 sq ft, all on or under budget.',
@@ -208,6 +207,7 @@ export const sampleDeal = {
     { name: 'Sam Rivera', company: 'Sample Design Studio', role: 'Architect', bio: 'Licensed architect with 15 years of small-format retail and office design experience.' },
     { name: 'Taylor Brooks', company: 'Example Construction Co.', role: 'General Contractor', bio: 'GC with a portfolio of 30+ commercial projects under $10M in the region.' },
   ],
+  customSections: [],
   newsSummary: 'SAMPLE ONLY: these news items are made up to show how results look. Press “Search the news” to replace them with real results.',
   newsCheckedAt: '',
   news: [
