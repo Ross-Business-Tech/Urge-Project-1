@@ -11,7 +11,6 @@ import { verifyAll } from './lib/verify/index.js';
 import { readFactsFromDom } from './lib/verify/memoFacts.js';
 import VerificationReport from './components/VerificationReport.jsx';
 import { sampleLoans } from './lib/sampleLoans.js';
-import { randomDeal, MAX_MISTAKES } from './lib/randomDeal.js';
 import { loadTemplates, saveTemplates } from './lib/sections.js';
 import './App.css';
 
@@ -75,8 +74,6 @@ export default function App() {
   const memoRef = useRef(null);
   const [report, setReport] = useState(null); // Verification report for the memo as it reads now
   const [checking, setChecking] = useState(false);
-  const [rand, setRand] = useState({ profile: 'any', mistakes: '0', seed: '' });
-  const [seedTyped, setSeedTyped] = useState(false); // true only while the user has typed their own seed
   const [compact, setCompact] = useState(false); // scrolled down: the mode switch shrinks to just its icons
   const [spin, setSpin] = useState(0); // changes whenever a new deal loads so the form visibly refills
 
@@ -100,16 +97,6 @@ export default function App() {
     if (!ex) return;
     loadDeal(structuredClone(ex.deal), { kind: 'sample' });
     flash(`Loaded sample: ${ex.name}.`);
-  };
-
-  const randomize = (repeat = false) => {
-    // A new random deal every click. A typed seed (or Repeat) is used once to recreate a deal.
-    const seed = (repeat || seedTyped) && rand.seed.trim() ? Number(rand.seed) || 1 : (crypto.getRandomValues(new Uint32Array(1))[0] % 1000000) + 1;
-    setSeedTyped(false);
-    const r = randomDeal(seed, { profile: rand.profile, mistakes: Number(rand.mistakes) });
-    loadDeal(r.deal, { kind: 'sample' });
-    setRand({ ...rand, seed: String(seed) });
-    flash(`Random deal #${seed} (${r.profile}${r.planted.length ? `, ${r.planted.length} planted problem${r.planted.length > 1 ? 's' : ''}: ${r.planted.slice(0, 3).map((p) => p.type).join(', ')}${r.planted.length > 3 ? ` and ${r.planted.length - 3} more` : ''}` : ''}).`);
   };
 
   // Edits on the Deal data page: anything changed by hand now counts as "typed".
@@ -294,29 +281,6 @@ export default function App() {
                 {sampleLoans.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
               </select>
             </label>
-            <div className="random">
-              <label><span>Randomizer</span>
-                <select value={rand.profile} onChange={(e) => setRand({ ...rand, profile: e.target.value })} aria-label="Random deal type">
-                  <option value="any">Any type</option>
-                  <option value="strong">Strong</option>
-                  <option value="mid">Medium</option>
-                  <option value="weak">Weak</option>
-                  <option value="chaotic">Chaotic</option>
-                </select>
-              </label>
-              <label><span>Planted mistakes</span>
-                <select value={rand.mistakes} onChange={(e) => setRand({ ...rand, mistakes: e.target.value })} aria-label="Number of planted mistakes">
-                  <option value="0">None</option>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => n < MAX_MISTAKES).map((n) => <option key={n} value={n}>{n}</option>)}
-                  <option value={MAX_MISTAKES}>Maximum ({MAX_MISTAKES})</option>
-                </select>
-              </label>
-              <label><span>Last seed (type one to repeat it)</span>
-                <input inputMode="numeric" placeholder="random" value={rand.seed} onChange={(e) => { setSeedTyped(true); setRand({ ...rand, seed: e.target.value.replace(/\D/g, '') }); }} aria-label="Random seed" />
-              </label>
-              <button className="btn" onClick={() => randomize(false)}>Randomize the whole deal</button>
-              <button className="btn ghost" disabled={!rand.seed} onClick={() => randomize(true)}>Repeat this seed</button>
-            </div>
           </div>
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>

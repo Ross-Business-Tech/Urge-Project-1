@@ -223,7 +223,6 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
   background: var(--surface); border: 0; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 24px;
 }
 .samples label span { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-.random { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
 
 /* Randomize: the form fades in with a soft highlight so it is clear the data changed */
 .shuffle fieldset { animation: form-refresh .45s ease-out both; }
