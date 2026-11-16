@@ -1,0 +1,310 @@
+{
+  "ranAt": "2026-11-16T23:33:00.695Z",
+  "passed": 31,
+  "total": 31,
+  "rows": [
+    {
+      "id": "R1",
+      "area": "Ratings",
+      "input": "Sample deal (made up): 9 yrs experience, debt-to-equity 2.5x after loan, refinance covers 1.22x",
+      "expected": "Overall YELLOW",
+      "actual": "Overall YELLOW",
+      "result": "PASS"
+    },
+    {
+      "id": "R2",
+      "area": "Ratings",
+      "input": "Strong deal: 15 yrs experience, low debt, $900K cash, $2M proceeds, Walk Score 90, steady ~10%/yr revenue growth",
+      "expected": "Overall GREEN",
+      "actual": "Overall GREEN",
+      "result": "PASS"
+    },
+    {
+      "id": "R7",
+      "area": "Ratings",
+      "input": "Same strong deal, but the borrower projects revenue jumping 61% in one year",
+      "expected": "Overall YELLOW: red flag \"projected revenue growth looks aggressive\"",
+      "actual": "Overall YELLOW; RED: Projected 2027 revenue growth of 61% looks aggressive",
+      "result": "PASS"
+    },
+    {
+      "id": "R3",
+      "area": "Ratings",
+      "input": "Weak deal: 2 yrs experience, debt 8x equity, $10K cash, $500K proceeds",
+      "expected": "Overall RED",
+      "actual": "Overall RED",
+      "result": "PASS"
+    },
+    {
+      "id": "R4",
+      "area": "Ratings",
+      "input": "Borrower has completed $500K of development, no stage picked",
+      "expected": "Suggested stage Early-emerging; \"Emerging developer\" criterion GREEN",
+      "actual": "Suggested Early-emerging; criterion GREEN",
+      "result": "PASS"
+    },
+    {
+      "id": "R5",
+      "area": "Ratings",
+      "input": "Borrower has completed $25M of development, no stage picked",
+      "expected": "Suggested stage Established; criterion YELLOW",
+      "actual": "Suggested Established; criterion YELLOW",
+      "result": "PASS"
+    },
+    {
+      "id": "R6",
+      "area": "Ratings",
+      "input": "Project cash flow: net operating income only 0.9x debt service",
+      "expected": "Red flag \"Project cash flow\"",
+      "actual": "RED: Underwritten project DSCR as low as 0.90x",
+      "result": "PASS"
+    },
+    {
+      "id": "V1",
+      "area": "Verification",
+      "input": "Project sources total $5M more than uses",
+      "expected": "Failed check: sources and uses do not balance",
+      "actual": "Failed check: sources and uses do not balance",
+      "result": "PASS"
+    },
+    {
+      "id": "V2",
+      "area": "Verification",
+      "input": "Repayment expected in month 48 on a 36-month loan",
+      "expected": "Failed check: repayment after the loan matures",
+      "actual": "Failed check: repayment after maturity",
+      "result": "PASS"
+    },
+    {
+      "id": "V3",
+      "area": "Verification",
+      "input": "Interest rate typed as 85 instead of 8.5",
+      "expected": "Warning: interest rate looks wrong",
+      "actual": "Warning: interest rate looks wrong",
+      "result": "PASS"
+    },
+    {
+      "id": "V4",
+      "area": "Verification",
+      "input": "Balance sheet: equity typed as $5M (assets don’t add up)",
+      "expected": "Failed check: balance sheet does not balance",
+      "actual": "Failed check: balance sheet",
+      "result": "PASS"
+    },
+    {
+      "id": "V5",
+      "area": "Verification",
+      "input": "Underwriter edits the memo: loan $750,000 changed to $570,000 in one place",
+      "expected": "Failed check: $570,000 is not in the deal data",
+      "actual": "Failed check: $570,000 not in deal data",
+      "result": "PASS"
+    },
+    {
+      "id": "V6",
+      "area": "Verification",
+      "input": "An invented figure ($9,999,999) is typed into the memo",
+      "expected": "Failed check: figure not in the deal data",
+      "actual": "Failed check: $9,999,999 not in deal data",
+      "result": "PASS"
+    },
+    {
+      "id": "V7",
+      "area": "Verification",
+      "input": "Untouched sample memo",
+      "expected": "No failed checks; every figure traces to the deal data",
+      "actual": "0 failed checks; all figures trace",
+      "result": "PASS"
+    },
+    {
+      "id": "M1",
+      "area": "Memo",
+      "input": "$750,000 at 8.5%: interest-only 24 months, then 15-year amortization, 60-month term",
+      "expected": "Interest-only ~$5,313/mo; then ~$7,386/mo from month 25",
+      "actual": "IO $5,313 for 24 months; then $7,386 from month 25",
+      "result": "PASS"
+    },
+    {
+      "id": "M2",
+      "area": "Memo",
+      "input": "$750,000 at 8.5%, fully amortizing over 10 years",
+      "expected": "Monthly payment ~$9,299",
+      "actual": "Fully amortizing, $9,299/month",
+      "result": "PASS"
+    },
+    {
+      "id": "M3",
+      "area": "Memo",
+      "input": "Reason for loan typed as bullets (\"The loan will fund:\" + 3 bullets)",
+      "expected": "One paragraph: \"The loan will fund: a; b; and c.\" with no bullet dashes",
+      "actual": "Paragraph as expected",
+      "result": "PASS"
+    },
+    {
+      "id": "M4",
+      "area": "Memo",
+      "input": "Project type \"Other\" typed as \"Senior housing with ground-floor clinic\"",
+      "expected": "Memo calls it \"a senior housing with ground-floor clinic project\"",
+      "actual": "Typed project type used",
+      "result": "PASS"
+    },
+    {
+      "id": "M5",
+      "area": "Memo",
+      "input": "Collateral and guarantee entered in separate boxes",
+      "expected": "Loan terms table has separate Collateral and Guarantee rows",
+      "actual": "Two separate rows",
+      "result": "PASS"
+    },
+    {
+      "id": "M6",
+      "area": "Memo",
+      "input": "18 apartments; affordable: 1 at 50% AMI, 3 at 80% AMI",
+      "expected": "\"4 of 18 residential units (22%) ... 1 at 50% AMI and 3 at 80% AMI\"",
+      "actual": "Affordability sentence as expected",
+      "result": "PASS"
+    },
+    {
+      "id": "M7",
+      "area": "Memo",
+      "input": "Extra section \"Environmental Review\", just this memo, placed after Project Breakdown",
+      "expected": "Section appears right after PROJECT BREAKDOWN",
+      "actual": "Placed after Project Breakdown",
+      "result": "PASS"
+    },
+    {
+      "id": "M8",
+      "area": "Memo",
+      "input": "Completely blank deal form",
+      "expected": "Memo still renders with \"[... to be added]\" placeholders; no broken text (NaN/undefined)",
+      "actual": "33 placeholders; broken text: none",
+      "result": "PASS"
+    },
+    {
+      "id": "M9",
+      "area": "Memo",
+      "input": "Borrower track record: $6.5M developed, 12 units, 36,000 sq ft commercial",
+      "expected": "Memo states the track record in Management Experience",
+      "actual": "Track record sentence present",
+      "result": "PASS"
+    },
+    {
+      "id": "I1",
+      "area": "Impact",
+      "input": "Sample project, $6.8M total cost, default 1.5%–3% tax rate",
+      "expected": "Property taxes $102K–$204K per year",
+      "actual": "$102K–$204K per year",
+      "result": "PASS"
+    },
+    {
+      "id": "I2",
+      "area": "Impact",
+      "input": "18 units (1 at 50%, 3 at 80% AMI, 14 market), AMI $72,000, 93% occupied",
+      "expected": "Resident household income ~$944K–$1.32M per year",
+      "actual": "$944,136–$1,319,112",
+      "result": "PASS"
+    },
+    {
+      "id": "D1",
+      "area": "Data",
+      "input": "Save the sample deal as a spreadsheet, then load it again",
+      "expected": "Loaded deal is identical to the saved one",
+      "actual": "Identical",
+      "result": "PASS"
+    },
+    {
+      "id": "D2",
+      "area": "Data",
+      "input": "Uploaded spreadsheet has interest rate \"abc\"",
+      "expected": "Failed check: interest rate is not a number",
+      "actual": "Failed check: not a number",
+      "result": "PASS"
+    },
+    {
+      "id": "D3",
+      "area": "Data",
+      "input": "Free-text bullets with a person’s initial (\"J. Avery founded...\")",
+      "expected": "Left as typed (not mistaken for a list)",
+      "actual": "\"J. Avery founded the firm.\\nIt grew.\"",
+      "result": "PASS"
+    },
+    {
+      "id": "S1",
+      "area": "Security",
+      "input": "Site opened with NO team password set",
+      "expected": "Locked: only \"This site is locked\" page; AI route refused",
+      "actual": "page: locked notice; AI route: 401",
+      "result": "PASS"
+    },
+    {
+      "id": "S2",
+      "area": "Security",
+      "input": "Password set; visitor types a wrong password, then the right one",
+      "expected": "Wrong: refused (401). Right: signed in, app shown",
+      "actual": "wrong: 401; right: 303; app after sign-in: shown",
+      "result": "PASS"
+    },
+    {
+      "id": "S3",
+      "area": "Security",
+      "input": "Signed-out visitor calls the AI route directly",
+      "expected": "Refused (401); AI key never used",
+      "actual": "401",
+      "result": "PASS"
+    }
+  ],
+  "live": [
+    {
+      "id": "L1",
+      "area": "AI document scan",
+      "input": "Upload a made-up term sheet (PDF) with $500,000 loan, 6.5%, 60 months, 36 months interest-only",
+      "expected": "Suggested values: loan amount 500000, rate 6.5, term 60, interest-only 36, each with a quote from the file"
+    },
+    {
+      "id": "L2",
+      "area": "AI news search",
+      "input": "Deeper AI search for a well-known Detroit developer and address",
+      "expected": "Recent articles with working source links, each rated red/yellow/green with a reason"
+    },
+    {
+      "id": "L3",
+      "area": "AI area description",
+      "input": "“Describe the area with AI” for a real Detroit address",
+      "expected": "1–2 paragraphs on nearby places, new developments and who they serve; no invented numbers"
+    },
+    {
+      "id": "L4",
+      "area": "AI loan sizing",
+      "input": "Sample deal’s four loan sizing points → “Write the loan sizing paragraph with AI”",
+      "expected": "One paragraph using only those points"
+    },
+    {
+      "id": "L5",
+      "area": "Free news search",
+      "input": "“Search the news” for a real developer and address",
+      "expected": "Articles from the last 3 years that name the borrower or site; lawsuits rated red"
+    },
+    {
+      "id": "L6",
+      "area": "Phone",
+      "input": "Open the live link on a phone, sign in, write the sample memo",
+      "expected": "Everything readable; no sideways scrolling; Download for Word works"
+    }
+  ],
+  "history": [
+    {
+      "run": 1,
+      "score": "29 / 30",
+      "note": "R2 failed: the \"strong deal\" example still contained the sample deal’s 61% projected revenue jump, which the app correctly flags as aggressive (so it rated Yellow). The example was incomplete, not the app. Fixed the example (steady growth) and added R7 to test the aggressive-projection case on its own."
+    },
+    {
+      "run": 2,
+      "score": "31 / 31",
+      "note": "Rerun after fixing R2 and adding R7."
+    },
+    {
+      "run": "Extra",
+      "score": "2 bugs fixed",
+      "note": "While taking screenshots for the user guide on a laptop-sized screen we found the “Where this came from” card did not appear: (1) it closed itself the moment it opened, and (2) it opened about 10,000 pixels off screen. Phones were not affected. Both fixed in src/components/SourceCard.jsx and re-checked in a browser."
+    }
+  ]
+}

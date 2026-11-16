@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Memo Drafter · README</title>
+<style>
+  @page { size: Letter; margin: 0.42in 0.5in; }
+  body { font: 8.6pt/1.33 Arial, Helvetica, sans-serif; color: #1d1d1f; margin: 0; }
+  h1 { font-size: 16pt; margin: 0; color: #13284c; }
+  h2 { font-size: 10.5pt; color: #13284c; margin: 7px 0 3px; border-bottom: 2px solid #f5cb3f; padding-bottom: 1px; }
+  p { margin: 0 0 4px; }
+  ul { margin: 0 0 4px 15px; padding: 0; }
+  li { margin: 0 0 1.5px; }
+  code { font: 8pt Menlo, Consolas, monospace; background: #f1f3f6; padding: 0 3px; border-radius: 3px; }
+  .quick { border: 2px solid #13284c; border-radius: 6px; padding: 5px 9px; margin: 5px 0 2px; background: #f6f8fb; }
+  table.grid { width: 100%; border-collapse: collapse; margin: 2px 0 4px; font-size: 8.2pt; }
+  table.grid th, table.grid td { border: 1px solid #ccc; padding: 2px 5px; text-align: left; vertical-align: top; }
+  table.grid th { background: #13284c; color: #fff; }
+</style></head>
+<body>
+<h1>Memo Drafter · README</h1>
+<div class="quick">
+  <p><b>Live tool:</b> https://memo-drafter.onrender.com (team password from the team lead; never stored in the code or this document)</p>
+  <p><b>Code:</b> github.com/Ross-Business-Tech/Urge-Project-1 (branch <b>main</b> is what Render runs) · <b>Test score:</b> 31 / 31 acceptance examples · 88 / 88 automated stress checks</p>
+</div>
+
+<h2>1. What it does</h2>
+<p>Drafts EBIARA’s 15–20 page investment committee memo from a deal’s underwriting data, to cut the 8–12 hours an underwriter spends writing it. An underwriter enters the deal (typing, a saved spreadsheet, or <b>AI scan</b> of the term sheet, underwriting model and financials). The tool writes the memo in the fund’s format (Request, Investment Merits with green/yellow/red evaluations, Project Breakdown, Sources &amp; Uses, Mission Alignment, Neighborhood Impact, Financials, Repayment, Risks &amp; Mitigants, Loan Sizing, Recommendation, Approvals, Exhibits) and then <b>checks it</b>: a verification report re-does the math and ratings, every number can be tapped to see its source, and red/yellow flags challenge the borrower’s assumptions. It also searches recent news on the borrower and site, can describe the area and draft paragraphs with AI, accepts bullets in any text box, lets users add their own sections, and exports to Word or PDF.</p>
+
+<h2>2. How it works</h2>
+<ul>
+  <li><b>Front end</b> (React + Vite, <code>src/</code>): runs in the browser. Deal data is kept only in the user’s browser (no database). Memo layout: <code>src/components/Memo.jsx</code>. Calculations and flags: <code>src/lib/analysis.js</code>. Rating thresholds: <code>src/lib/verify/rubric.js</code> (an independent re-check in <code>verify/ratings.js</code> must agree). Impact assumptions: <code>src/lib/impact.js</code>.</li>
+  <li><b>Server</b> (<code>server.mjs</code>, Node 20+, no database) on Render: serves the built app, enforces the shared password (<code>api/auth.js</code>), and relays the AI and news requests so the AI key stays on the server (<code>api/_lib.js</code>). The AI key decides the service: U-M GPT Toolkit, OpenAI or OpenRouter. If the service can’t search the web, the news search falls back to Bing/Google News plus an AI review.</li>
+</ul>
+
+<h2>3. What it can’t do (limitations)</h2>
+<ul>
+  <li>It writes a <b>first draft</b>. An underwriter must review every AI-filled value, news item, mitigant and the recommendation. The committee decides.</li>
+  <li><b>Neighborhood impact figures are planning ranges</b> from general assumptions (e.g. 1.5%–3% property tax, $150–$300 sales per sq ft), not measured or client-provided numbers. Replace them before presenting impact.</li>
+  <li>Free news ratings come from warning words in headlines. News sites may limit requests from the server.</li>
+  <li>No user accounts: one shared password. Data and “all future memos” sections live in each user’s browser, not shared between people.</li>
+  <li>Firm financial model: being built by another team, not yet connected. Refinance/cap-rate scenarios and the risk-rating sheet are not included.</li>
+  <li>AI scan: up to 20 files / ~12 MB per request. Only share documents you are allowed to send to the AI service.</li>
+</ul>
+
+<h2>4. Running and maintaining it</h2>
+<table class="grid">
+  <tr><th style="width:27%">Task</th><th>How</th></tr>
+  <tr><td>Deploy a change</td><td>Merge a pull request into <b>main</b>. Render rebuilds automatically (<code>npm ci &amp;&amp; npm run build</code>, then <code>npm start</code>). Check <code>/api/health</code> after.</td></tr>
+  <tr><td>Render settings (Environment)</td><td><code>SITE_PASSWORD</code> (8+ characters; without it the site stays locked) · <code>OPENROUTER_API_KEY</code> (holds the AI key; any of the three services) · optional <code>AI_ORGANIZATION</code> (U-M shortcode), <code>AI_MODEL</code>, <code>AI_BASE_URL</code>. Never put keys or the password in code, slides or GitHub.</td></tr>
+  <tr><td>Remove someone’s access</td><td>Change <code>SITE_PASSWORD</code> in Render: everyone is signed out and needs the new password.</td></tr>
+  <tr><td>AI key</td><td>U-M GPT Toolkit keys expire yearly: renew at toolkit.umgpt.umich.edu, paste into Render, redeploy. Usage is billed to the shortcode.</td></tr>
+  <tr><td>Test before merging</td><td><code>npm run build</code> · <code>npm run stress</code> (88 checks) · <code>node tests/acceptance.mjs</code> (31 examples). Both must pass.</td></tr>
+  <tr><td>Change a rule or assumption</td><td>Edit <code>rubric.js</code> and the matching rule in <code>analysis.js</code> (the stress test fails if they disagree). Impact assumptions: <code>impact.js</code>.</td></tr>
+  <tr><td>Cost</td><td>Render free plan (sleeps when idle: first visit takes ~1 min) or ~$7/month to stay awake. AI usage per request.</td></tr>
+</table>
+</body></html>

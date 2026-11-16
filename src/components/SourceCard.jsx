@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const ICON = { typed: '⌨️', file: '📄', sample: '🧪', calc: '🧮', news: '📰', doc: '📑' };
 
@@ -19,9 +20,13 @@ export default function SourceCard({ info, shown, edited, original, anchor, onCl
   }, [anchor, info]);
 
   useEffect(() => {
-    ref.current?.focus();
+    // Focus without scrolling: a focus scroll used to count as "the user scrolled" and closed the
+    // card the moment it opened on wide screens.
+    ref.current?.focus({ preventScroll: true });
+    const startY = window.scrollY;
     const onKey = (e) => e.key === 'Escape' && onClose();
-    const onScroll = () => window.innerWidth > 640 && onClose();
+    // On wide screens the card sits next to the number, so close it once the page really scrolls.
+    const onScroll = () => window.innerWidth > 640 && Math.abs(window.scrollY - startY) > 40 && onClose();
     window.addEventListener('keydown', onKey);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
@@ -30,7 +35,9 @@ export default function SourceCard({ info, shown, edited, original, anchor, onCl
     };
   }, [onClose]);
 
-  return (
+  // Rendered straight into <body>: the page's entrance animation leaves a transform on <main>, which
+  // made this "position: fixed" card open thousands of pixels off screen on wide screens.
+  return createPortal(
     <>
       <div className="src-backdrop no-print" onClick={onClose} />
       <div
@@ -88,6 +95,7 @@ export default function SourceCard({ info, shown, edited, original, anchor, onCl
           <button type="button" className="btn src-go" onClick={() => onGoTo(info.focus)}>Go to this in Deal data →</button>
         )}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
