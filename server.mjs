@@ -13,7 +13,6 @@ import news from './api/news.js';
 import extract from './api/extract.js';
 import bnews from './api/bnews.js';
 import gnews from './api/gnews.js';
-import walkscore from './api/walkscore.js';
 import { aiConfig, listModels, pickModel } from './api/_lib.js';
 import { passwordProtected, signedIn, loginPage, handleLogin, logout } from './api/auth.js';
 
@@ -22,7 +21,7 @@ const DIST = path.join(ROOT, 'dist');
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 12 * 1024 * 1024; // documents and page images sent for AI reading
 
-const ROUTES = { '/api/news': news, '/api/extract': extract, '/api/bnews': bnews, '/api/gnews': gnews, '/api/walkscore': walkscore };
+const ROUTES = { '/api/news': news, '/api/extract': extract, '/api/bnews': bnews, '/api/gnews': gnews };
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
@@ -97,7 +96,7 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
 
 async function health(res) {
   const ai = aiConfig();
-  const out = { ok: true, passwordProtected: passwordProtected(), aiKeySet: Boolean(ai.key), walkScoreKeySet: Boolean(String(process.env.WALKSCORE_API_KEY || '').trim()), aiProvider: ai.provider, node: process.version };
+  const out = { ok: true, passwordProtected: passwordProtected(), aiKeySet: Boolean(ai.key), aiProvider: ai.provider, node: process.version };
   if (ai.key && ai.provider !== 'openrouter') {
     out.aiAddress = ai.base;
     out.aiOrganizationSet = Boolean(ai.org);
