@@ -2,7 +2,7 @@ import { tooMany } from './_lib.js';
 // Walk Score lookup for the project address (Deal data, section 4).
 //   1. The address is turned into map coordinates with the free U.S. Census geocoder (no key).
 //   2. Walk Score's official API returns the Walk, Transit and Bike Scores.
-// Needs WALKSCORE_API_KEY in the host's settings (free key: walkscore.com/professional/api-sign-up.php).
+// Needs WALKSCORE_API_KEY in the host's settings (free key: walkscore.com/professional/sign-up).
 // The key stays on the server.
 
 const json = (res, code, body) => res.status(code).json(body);
