@@ -14,6 +14,13 @@ export const safeUrl = (u) => {
 };
 
 const clean = (s, max = 600) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+// Like clean, but a long text ends at the last full sentence instead of mid-word.
+const sentences = (s, max) => {
+  const t = String(s ?? '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max), end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('.) '));
+  return end > max / 3 ? cut.slice(0, end + 1) : `${cut.replace(/\s+\S*$/, '')}…`;
+};
 
 // One-tap manual searches; these work even when the AI search is not set up.
 export function manualSearches(deal) {
@@ -117,7 +124,7 @@ export async function searchNews(deal) {
     relevance: clean(it.relevance, 300),
   })).filter((it) => it.headline);
 
-  return { summary: clean(parsed.summary, 800), items, citations };
+  return { summary: sentences(parsed.summary, 1200), items, citations };
 }
 
 // When the AI service can't search the web itself (e.g. the U-M GPT Toolkit), the free search
@@ -160,7 +167,7 @@ Return ONLY JSON: {"summary":"2-3 sentence plain-language overview","items":[{"n
   const order = { red: 0, yellow: 1, green: 2 };
   items.sort((a, b) => order[a.level] - order[b.level]);
   return {
-    summary: `${clean(parsed.summary, 700)} (AI review of ${free.items.length} article(s) from Bing/Google News${dropped ? `; ${dropped} not about this deal were removed` : ''}.)`,
+    summary: `${sentences(parsed.summary, 900)} (AI review of ${free.items.length} article(s) from Bing/Google News${dropped ? `; ${dropped} not about this deal were removed` : ''}.)`,
     items,
     citations: [],
   };

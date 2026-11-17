@@ -38,10 +38,8 @@ function parseJson(t) {
   try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; }
 }
 
-// Returns { deal: polished copy, changed: number of fields rewritten, kept: fields left as typed }.
-export async function polishDeal(deal) {
-  const items = collect(deal);
-  if (!items.length) return { deal, changed: 0, kept: 0 };
+// One AI request for a batch of fields: returns { id: rewritten text }.
+async function rewrite(deal, batch) {
   const prompt = `You are editing the underwriter's notes for a community lender's investment committee memo (fund: ${deal.fundName || 'the fund'}; borrower: ${deal.firmName || 'the borrower'}).
 Rewrite EACH text below into polished, professional memo prose:
 - Turn bullet points, fragments and shorthand into complete, grammatical sentences (one paragraph unless the text clearly needs more).
@@ -50,16 +48,16 @@ Rewrite EACH text below into polished, professional memo prose:
 - Keep about the same length. No headings, no bullet points, no quotation marks around the whole text.
 Return ONLY a JSON object that maps each id to its rewritten text.
 
-${JSON.stringify(Object.fromEntries(items.map((x) => [x.id, x.text])), null, 1)}`;
+${JSON.stringify(Object.fromEntries(batch.map((x) => [x.id, x.text])), null, 1)}`;
 
   let res;
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 90000); // never leave the memo waiting forever
+  const timer = setTimeout(() => ctl.abort(), 120000); // never leave the memo waiting forever
   try {
     res = await fetch('./api/news', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ models: MODELS, messages: [{ role: 'user', content: prompt }], max_tokens: 8000 }),
+      body: JSON.stringify({ models: MODELS, messages: [{ role: 'user', content: prompt }], max_tokens: 4000 }),
       signal: ctl.signal,
     });
   } catch {
@@ -71,13 +69,38 @@ ${JSON.stringify(Object.fromEntries(items.map((x) => [x.id, x.text])), null, 1)}
   const data = await res.json().catch(() => null);
   const out = parseJson(data?.choices?.[0]?.message?.content);
   if (!out || typeof out !== 'object') throw new Error('the AI returned something unexpected');
+  return out;
+}
+
+// Small batches, sent at the same time: faster, and one slow or failed batch only leaves
+// its own fields as typed.
+const BATCH_CHARS = 3000;
+function batches(items) {
+  const out = [];
+  let cur = [], size = 0;
+  for (const it of items) {
+    if (cur.length && size + it.text.length > BATCH_CHARS) { out.push(cur); cur = []; size = 0; }
+    cur.push(it); size += it.text.length;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+// Returns { deal: polished copy, changed: number of fields rewritten, kept: fields left as typed }.
+export async function polishDeal(deal) {
+  const items = collect(deal);
+  if (!items.length) return { deal, changed: 0, kept: 0 };
+  const results = await Promise.allSettled(batches(items).map((b) => rewrite(deal, b)));
+  const ok = results.filter((r) => r.status === 'fulfilled');
+  if (!ok.length) throw results[0].reason;
+  const out = Object.assign({}, ...ok.map((r) => r.value));
 
   const d = structuredClone(deal);
   let changed = 0, kept = 0;
   for (const { id, text } of items) {
     const next = typeof out[id] === 'string' ? out[id].trim() : '';
-    const ok = next && sameNumbers(text, next) && next.length <= text.length * 3 + 300;
-    if (!ok) { kept++; continue; }
+    const good = next && sameNumbers(text, next) && next.length <= text.length * 3 + 300;
+    if (!good) { kept++; continue; }
     if (next === String(text).trim()) continue;
     const parts = id.split('.');
     if (parts.length === 1) d[id] = next;
@@ -87,4 +110,4 @@ ${JSON.stringify(Object.fromEntries(items.map((x) => [x.id, x.text])), null, 1)}
   return { deal: d, changed, kept };
 }
 
-export const __test = { numbers, sameNumbers, collect };
+export const __test = { numbers, sameNumbers, collect, batches };
