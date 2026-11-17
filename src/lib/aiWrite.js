@@ -68,6 +68,7 @@ export function plain(t) {
     .replace(/\(\s*\(([^()]+)\)\s*\)/g, '($1)')
     .replace(/\s*\(?https?:\/\/[^\s)]+\)?/g, '')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\s*\((?:[a-z0-9-]+\.)+[a-z]{2,}(?:[,;]\s*(?:[a-z0-9-]+\.)+[a-z]{2,})*\)/gi, '') // "(realtor.com)" source tags
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
 }

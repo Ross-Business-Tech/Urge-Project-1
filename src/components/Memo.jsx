@@ -633,7 +633,7 @@ function MemoDoc({ deal: raw }) {
               </ul>
             </div>
           );
-        }) : <p><Missing what="News search" /></p>}
+        }) : deal.newsCheckedAt ? (!deal.newsSummary && <p>No news items about this borrower or site were found.</p>) : <p><Missing what="News search" /></p>}
         <Note>Underwriter to confirm: open each source and verify it refers to this borrower and site before committee.{deal.newsCheckedAt ? ` Search run ${deal.newsCheckedAt}.` : ''}</Note>
       </section>
 
