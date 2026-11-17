@@ -112,6 +112,16 @@ export default function App() {
     flash(`Filled in ${n} field${n === 1 ? '' : 's'} from your documents. Review them below, then write the memo.`);
   };
 
+  // Walk Score looked up on walkscore.com (Deal data, section 4): the source card shows where it came from.
+  const applyWalkScore = (score, quote) => {
+    setDeal((d) => ({ ...d, walkScore: String(score) }));
+    setOrigins((o) => {
+      const typed = { ...o.typed };
+      delete typed.walkScore;
+      return { ...o, typed, docs: { ...o.docs, walkScore: { file: 'walkscore.com', quote, lookup: true } } };
+    });
+  };
+
   const flash = (text, kind = 'ok') => {
     setMsg({ text, kind });
     setTimeout(() => setMsg(null), 4000);
@@ -281,7 +291,7 @@ export default function App() {
         </section>
 
         <div key={spin} className={spin ? 'shuffle' : ''}>
-          <DealForm deal={deal} set={editDeal} templates={templates} setTemplates={setTemplates} />
+          <DealForm deal={deal} set={editDeal} templates={templates} setTemplates={setTemplates} onWalkScore={applyWalkScore} />
         </div>
 
         <div className="sticky-cta">

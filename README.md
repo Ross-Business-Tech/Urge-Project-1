@@ -15,6 +15,7 @@ Drafts EBIARA's 15–20 page investment committee memo from a deal's underwritin
   - red/yellow flags challenge the borrower's assumptions
 - **Other features:**
   - recent news on the borrower and the site
+  - automatic Walk Score lookup for the project address (walkscore.com)
   - AI descriptions of the area and AI-drafted paragraphs
   - rough notes and bullets are rewritten into polished memo sentences (same facts and numbers; "Show my original wording" switches back)
   - users can add their own memo sections
@@ -44,7 +45,7 @@ Drafts EBIARA's 15–20 page investment committee memo from a deal's underwritin
 | Task | How |
 |---|---|
 | Deploy a change | Merge a pull request into `main`. Render rebuilds automatically (`npm ci && npm run build`, then `npm start`). Check `/api/health` afterwards. |
-| Render settings | `SITE_PASSWORD` (8+ characters; without it the site stays locked) · `OPENROUTER_API_KEY` (the AI key, for any of the three services) · optional `AI_ORGANIZATION` (U-M shortcode), `AI_MODEL`, `AI_BASE_URL`. Never put keys or the password in code, slides or GitHub. |
+| Render settings | `SITE_PASSWORD` (8+ characters; without it the site stays locked) · `OPENROUTER_API_KEY` (the AI key, for any of the three services) · optional `AI_ORGANIZATION` (U-M shortcode), `AI_MODEL`, `AI_BASE_URL` · optional `WALKSCORE_API_KEY` (free key from walkscore.com/professional/api-sign-up.php; turns on the automatic Walk Score lookup). Never put keys or the password in code, slides or GitHub. |
 | Remove someone's access | Change `SITE_PASSWORD` in Render. Everyone is signed out and needs the new password. |
 | AI key | U-M GPT Toolkit keys expire yearly: renew at toolkit.umgpt.umich.edu, paste the new key into Render, and redeploy. Usage is billed to the shortcode. |
 | Test before merging | `npm run build` · `npm run stress` · `node tests/acceptance.mjs` (all must pass). |

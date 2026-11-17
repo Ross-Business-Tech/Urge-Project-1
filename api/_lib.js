@@ -9,7 +9,7 @@ export const cleanKey = (raw) => String(raw || '').trim().replace(/^["']|["']$/g
 
 // Best-effort per-IP limit (each serverless instance keeps its own count).
 const hits = new Map();
-function tooMany(req, limit = 60) {
+export function tooMany(req, limit = 60) {
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   const hour = Math.floor(Date.now() / 3600000);
   const key = `${ip}:${hour}`;
