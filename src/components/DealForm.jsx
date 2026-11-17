@@ -171,6 +171,9 @@ function AiButton({ label, run, onText, confirmReplace }) {
 // Looks the project address up on walkscore.com. Runs by itself once a full address is entered
 // and the Walk Score box is empty; the button re-checks it. A typed score that differs is never
 // replaced without asking.
+// walkscore.com's own page for an address (works without any key), e.g.
+// "740 Example Blvd, Detroit, MI" -> https://www.walkscore.com/score/740-Example-Blvd-Detroit-MI
+const walkScorePage = (a) => `https://www.walkscore.com/score/${String(a).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
 const looksComplete = (a) => /\d/.test(a) && /,/.test(a) && a.trim().length >= 10;
 function WalkScoreLookup({ deal, onResult }) {
   const [busy, setBusy] = useState(false);
@@ -203,7 +206,10 @@ function WalkScoreLookup({ deal, onResult }) {
   const differs = res && String(deal.walkScore || '').trim() && Number(deal.walkScore) !== res.walkScore;
   return (
     <div className="ai-btn field wide walkscore-lookup">
-      <div><button type="button" className="btn ghost" onClick={() => go(false)} disabled={busy}>{busy ? 'Checking walkscore.com…' : res ? 'Check Walk Score again' : 'Look up Walk Score'}</button></div>
+      <div className="walkscore-actions">
+        {address && <a className="btn ghost" href={walkScorePage(address)} target="_blank" rel="noreferrer">Open this address on walkscore.com ↗</a>}
+        <button type="button" className="btn text" onClick={() => go(false)} disabled={busy}>{busy ? 'Checking walkscore.com…' : res ? 'Check Walk Score again' : 'Fill in automatically'}</button>
+      </div>
       {res && (
         <p className={`small${differs ? ' news-error' : ''}`} role="status">
           walkscore.com: <b>{res.walkScore}</b>{res.description ? ` (${res.description})` : ''}
@@ -408,7 +414,7 @@ export default function DealForm({ deal, set, templates, setTemplates, onWalkSco
         <Field {...p} name="siteControl" label="Site control?" options={YES_NO} />
         <Field {...p} name="previouslyVacant" label="Previously vacant / blighted?" options={YES_NO} />
         <Field {...p} name="totalProjectCost" label="Total project cost" type="number" prefix="$" />
-        <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Type it in, or use the button below to look it up on walkscore.com." />
+        <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Open the address on walkscore.com (button below) and type the score here." />
         <WalkScoreLookup deal={deal} onResult={onWalkScore} />
         <Field {...p} name="neighborhood" label="What’s around the site" type="textarea" hint="Type it yourself (bullets are fine) or let the AI describe nearby places, new developments and who they serve." />
         <AiButton label="✨ Describe the area with AI" run={() => describeArea(deal)} onText={(t) => set({ ...deal, neighborhood: t })}

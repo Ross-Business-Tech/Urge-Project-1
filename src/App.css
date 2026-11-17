@@ -553,3 +553,4 @@ legend { position: relative; }
 .polish-note.muted { background: #f2f2f4; color: var(--muted); }
 .polish-note small { color: var(--muted); }
 .polish-note .spinner { width: 14px; height: 14px; }
+.walkscore-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
