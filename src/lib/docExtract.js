@@ -77,6 +77,7 @@ Rules:
 - Use ONLY what the documents say. Never guess or invent. Leave a field out if the documents don't give it.
 - Numbers: digits only, no $, commas, % or words ("1.2 million" -> 1200000; "8.5%" -> 8.5). Text: short and plain, written for an investment memo.
 - For every field, give the exact file name it came from and a short quote (under 20 words) copied from that file, so a person can check it.
+- Never include total or subtotal rows in a table (the form adds the rows up itself).
 - Tables go under "tables" (never under "fields"), one entry per table, using exactly the column names listed. Check every table in the list above (for example ${Object.keys(TABLES).filter((k) => SCAN_FIELDS.includes(k)).join(', ')}) and fill each one the documents support: a "use of proceeds" list is urgeUses, yearly firm results are financials, a pro forma is projectProjections, repayment sources are repaymentOptions, people and companies are team.
 - If two documents disagree, use the most recent or most official one and explain in "conflicts".
 - Return ONLY JSON, no other text, in this shape:
@@ -108,6 +109,9 @@ function pickChoice(value, options) {
   const v = clean(value).toLowerCase();
   return options.find((o) => o.toLowerCase() === v) || options.find((o) => v && o.toLowerCase().startsWith(v.slice(0, 6))) || '';
 }
+
+const AMOUNT_TABLES = new Set(['urgeUses', 'projectSources', 'projectUses']);
+const TOTAL_ROW = /^\s*(sub-?\s*)?totals?\b/i;
 
 // Other names models use for the table columns.
 const ALIASES = {
@@ -155,7 +159,9 @@ export function normalize(parsed, fileNames) {
         if (COL_CHOICES[key]?.[c]) return [c, pickChoice(v, COL_CHOICES[key][c]) || COL_CHOICES[key][c][0]];
         return [c, NUMBER_COLS.has(c) ? cleanNum(v) : clean(v, 600)];
       }))
-    ).filter((row) => TABLES[key].some((c) => !COL_CHOICES[key]?.[c] && row[c])); // drop rows that are only a dropdown value
+    ).filter((row) => TABLES[key].some((c) => !COL_CHOICES[key]?.[c] && row[c])) // drop rows that are only a dropdown value
+      // The app adds up the tables itself: a "Total" row copied from the file would count everything twice.
+      .filter((row) => !(AMOUNT_TABLES.has(key) && TOTAL_ROW.test(String(row.label || ''))));
     if (!rows.length) continue;
     out.push({ key, value: rows, file: fileOf(raw.file), quote: clean(raw.quote, 240) });
   }
