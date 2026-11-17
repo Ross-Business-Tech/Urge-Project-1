@@ -16,7 +16,7 @@ Drafts EBIARA's 15–20 page investment committee memo from a deal's underwritin
 - **Other features:**
   - recent news on the borrower and the site
   - AI descriptions of the area and AI-drafted paragraphs
-  - bullets typed into any text box become paragraphs
+  - rough notes and bullets are rewritten into polished memo sentences (same facts and numbers; "Show my original wording" switches back)
   - users can add their own memo sections
   - export to Word or PDF
 
@@ -33,7 +33,7 @@ Drafts EBIARA's 15–20 page investment committee memo from a deal's underwritin
 - **AI service:** the key decides which one is used (U-M GPT Toolkit, OpenAI or OpenRouter). If the service can't search the web, the news search uses Bing/Google News plus an AI review instead.
 
 ## 3. What it can't do
-- It writes a **first draft**. An underwriter must review every AI-filled value, news item, mitigant and the recommendation; the committee decides.
+- It writes a **first draft**. An underwriter must review every AI-filled value, AI-polished sentence, news item, mitigant and the recommendation; the committee decides.
 - **Neighborhood impact figures are planning ranges** from general assumptions (e.g. 1.5%–3% property tax), not measured or client-provided numbers. Replace them before presenting impact.
 - Free news ratings come from warning words in headlines, and news sites may limit requests from the server.
 - There are no user accounts, only one shared password. Data and "all future memos" sections live in each user's browser.
