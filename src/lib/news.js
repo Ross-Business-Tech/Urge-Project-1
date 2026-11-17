@@ -60,7 +60,7 @@ export async function aiError(res, what) {
   try { const j = JSON.parse(body); detail = j?.error?.message || j?.error || ''; } catch { detail = body; }
   detail = String(detail).replace(/\s+/g, ' ').trim().slice(0, 160);
   if (res.status === 404 || res.status === 405)
-    return `${what} isn’t available on this link. It works on the Render site and the team’s here.now sites once the AI key is added.`;
+    return `${what} isn’t available on this link. It works on the team’s live site.`;
   if (/sign in again/i.test(detail)) return detail;
   if (/not set on the server/i.test(detail))
     return `${what} isn’t switched on yet: the server has no OPENROUTER_API_KEY. In Render, open the service → Environment, add OPENROUTER_API_KEY, save, and let it redeploy.`;
