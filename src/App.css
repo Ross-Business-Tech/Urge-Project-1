@@ -399,8 +399,13 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
   body, .app { background: #fff; }
   main { padding: 0; max-width: none; animation: none; }
   .paper { border: 0; box-shadow: none; padding: 0; border-radius: 0; }
-  .memo h2 { break-after: avoid; }
-  .chart, table, .flag { break-inside: avoid; }
+  /* Keep headings with what follows; let long tables continue on the next page instead of
+     jumping whole (which left half-empty pages), but never split a row. */
+  .memo h2, .memo h3, .memo h4 { break-after: avoid; page-break-after: avoid; }
+  .chart, .flag { break-inside: avoid; }
+  table { break-inside: auto; }
+  tr, thead { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
   .chart, .flag { background: none; border: 1px solid #ddd; }
   .src { background: none !important; border: 0 !important; padding: 0 !important; }
 }
@@ -490,6 +495,7 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
   /* The firm name and page numbers print in the page margins (see the @page rules in Memo.jsx). */
   .memo.ebiara .memo-footer { display: none; }
   .memo.ebiara .table-scroll table { min-width: 0; }
+  .memo.ebiara .table-scroll, .memo .table-scroll { overflow: visible; } /* scroll boxes can't continue onto the next page */
 }
 
 /* Memo sub-sections, people cards and the impact estimate (client feedback, midpoint meeting) */

@@ -77,6 +77,7 @@ Rules:
 - Use ONLY what the documents say. Never guess or invent. Leave a field out if the documents don't give it.
 - Numbers: digits only, no $, commas, % or words ("1.2 million" -> 1200000; "8.5%" -> 8.5). Text: short and plain, written for an investment memo.
 - For every field, give the exact file name it came from and a short quote (under 20 words) copied from that file, so a person can check it.
+- Tables go under "tables" (never under "fields"), one entry per table, using exactly the column names listed. Check every table in the list above (for example ${Object.keys(TABLES).filter((k) => SCAN_FIELDS.includes(k)).join(', ')}) and fill each one the documents support: a "use of proceeds" list is urgeUses, yearly firm results are financials, a pro forma is projectProjections, repayment sources are repaymentOptions, people and companies are team.
 - If two documents disagree, use the most recent or most official one and explain in "conflicts".
 - Return ONLY JSON, no other text, in this shape:
 {"summary":"1-2 sentences on what the documents are",
@@ -108,6 +109,27 @@ function pickChoice(value, options) {
   return options.find((o) => o.toLowerCase() === v) || options.find((o) => v && o.toLowerCase().startsWith(v.slice(0, 6))) || '';
 }
 
+// Other names models use for the table columns.
+const ALIASES = {
+  label: ['name', 'item', 'use', 'source', 'description', 'category', 'line'],
+  amount: ['value', 'cost', 'total', 'dollars'],
+  netIncome: ['net_income', 'netincome', 'net income', 'profit'],
+  debtService: ['debt_service', 'debt service'],
+  expenses: ['operatingExpenses', 'operating_expenses', 'opex'],
+  option: ['source', 'description', 'text', 'label', 'name'],
+  role: ['title', 'position'],
+  company: ['firm', 'organization'],
+  annualRent: ['annual_rent', 'rent'],
+  marketValue: ['market_value', 'value'],
+  ami: ['amiPct', 'ami_pct', 'percent'],
+};
+const colValue = (row, c) => {
+  if (!row || typeof row !== 'object') return '';
+  if (row[c] != null && row[c] !== '') return row[c];
+  const hit = (ALIASES[c] || []).find((a) => row[a] != null && row[a] !== '');
+  return hit ? row[hit] : '';
+};
+
 // Keep only fields the app knows, in the format the form expects.
 export function normalize(parsed, fileNames) {
   const known = new Set(fileNames);
@@ -122,11 +144,14 @@ export function normalize(parsed, fileNames) {
     out.push({ key, value, file: fileOf(r.file), quote: clean(r.quote, 240) });
   }
 
-  for (const [key, raw] of Object.entries(parsed?.tables || {})) {
+  // Tables, wherever the AI put them (some models file them under "fields" or name columns their own way).
+  const tables = { ...Object.fromEntries(Object.entries(parsed?.fields || {}).filter(([k]) => TABLES[k])), ...(parsed?.tables || {}) };
+  for (const [key, raw] of Object.entries(tables)) {
     if (!SCAN_FIELDS.includes(key) || !TABLES[key] || !raw) continue;
-    const rows = (Array.isArray(raw.rows) ? raw.rows : Array.isArray(raw) ? raw : []).slice(0, 30).map((row) =>
-      Object.fromEntries(TABLES[key].map((c) => {
-        const v = row?.[c];
+    const list = Array.isArray(raw.rows) ? raw.rows : Array.isArray(raw.value) ? raw.value : Array.isArray(raw) ? raw : [];
+    const rows = list.slice(0, 30).map((row) =>
+      Object.fromEntries(TABLES[key].map((c, i) => {
+        const v = typeof row === 'string' || typeof row === 'number' ? (i === 0 ? row : '') : colValue(row, c);
         if (COL_CHOICES[key]?.[c]) return [c, pickChoice(v, COL_CHOICES[key][c]) || COL_CHOICES[key][c][0]];
         return [c, NUMBER_COLS.has(c) ? cleanNum(v) : clean(v, 600)];
       }))
@@ -163,7 +188,7 @@ export async function extractDeal(docs) {
       body: JSON.stringify({
         models: MODELS,
         messages: [{ role: 'user', content }],
-        max_tokens: 6000,
+        max_tokens: 8000,
         temperature: 0,
       }),
     });
