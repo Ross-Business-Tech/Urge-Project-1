@@ -21,7 +21,7 @@ export default async function walkscore(req, res) {
   const address = String(req.body?.address || '').trim().slice(0, 300);
   if (address.length < 5) return json(res, 400, { error: 'Type the project’s street address first.', code: 'no_address' });
   const key = String(process.env.WALKSCORE_API_KEY || '').trim();
-  if (!key) return json(res, 501, { error: 'The Walk Score lookup isn’t switched on for this site yet. Look the address up at walkscore.com and type the score in.', code: 'no_key' });
+  if (!key) return json(res, 501, { error: 'Automatic fill-in isn’t switched on for this site (it needs a Walk Score API key). Use “Open this address on walkscore.com” and type the score in.', code: 'no_key' });
 
   let place;
   try { place = await geocode(address); } catch { return json(res, 502, { error: 'The address lookup service didn’t answer. Try again in a minute.' }); }
