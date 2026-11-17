@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Memo Drafter · User Guide</title>
+<style>
+  @page { size: Letter; margin: 0.45in 0.55in; }
+  body { font: 9.6pt/1.36 Arial, Helvetica, sans-serif; color: #1d1d1f; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 2px; color: #13284c; }
+  .sub { color: #555; margin: 0 0 10px; }
+  h2 { font-size: 12pt; color: #13284c; margin: 10px 0 5px; border-bottom: 2px solid #f5cb3f; padding-bottom: 2px; }
+  h3 { font-size: 10.8pt; margin: 0 0 3px; color: #13284c; }
+  p { margin: 0 0 6px; }
+  ul, ol { margin: 0 0 6px 18px; padding: 0; }
+  li { margin: 0 0 2px; }
+  .quick { border: 2px solid #13284c; border-radius: 8px; padding: 9px 12px; margin: 6px 0 4px; background: #f6f8fb; }
+  .quick ol { margin-bottom: 0; }
+  .link { font-weight: bold; color: #0058b9; }
+  table.step { width: 100%; border-collapse: collapse; margin: 4px 0 6px; page-break-inside: avoid; }
+  table.step td { vertical-align: top; padding: 0; }
+  table.step td.txt { width: 56%; padding-right: 12px; }
+  table.step img { width: 100%; border: 1px solid #d0d0d0; border-radius: 6px; }
+  .cap { font-size: 8.5pt; color: #666; margin-top: 2px; }
+  table.grid { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: 9.5pt; }
+  table.grid th, table.grid td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-align: top; }
+  table.grid th { background: #13284c; color: #fff; }
+  .g { background: #92d050; padding: 0 5px; font-weight: bold; } .y { background: #ffff00; padding: 0 5px; font-weight: bold; } .r { background: #ff4b4b; padding: 0 5px; font-weight: bold; }
+  .note { border-left: 3px solid #f5cb3f; background: #fffbea; padding: 6px 10px; margin: 6px 0; }
+  .pb { page-break-before: always; }
+</style></head>
+<body>
+<h1>Memo Drafter · User Guide</h1>
+<p class="sub">For EBIARA underwriters. Turns a deal’s underwriting data into a first-draft investment memo in the fund’s committee format, then checks it.</p>
+
+<div class="quick">
+  <h3>Quick start</h3>
+  <p>Live link: <span class="link">https://memo-drafter.onrender.com</span> · Password: ask your team lead (it is never written in this guide).</p>
+  <ol>
+    <li><b>Open the link and sign in</b> with the team password. The first visit of the day can take up to a minute to wake up.</li>
+    <li><b>Load the deal:</b> “Scan documents with AI” (term sheet, underwriting model, financials), “Upload deal spreadsheet”, or type it in. To practice, press “Try a sample deal”.</li>
+    <li><b>Check the Deal data sections</b> (1–12). Tap the <b>(i)</b> next to a section title to see what it needs.</li>
+    <li><b>Press “Write the memo →”.</b> Read the Verification report at the top and fix anything it flags.</li>
+    <li><b>Download for Word</b> (or Print / PDF), make your final edits, and send it to the committee.</li>
+  </ol>
+</div>
+
+<h2>Step by step</h2>
+
+<table class="step"><tr><td class="txt">
+  <h3>1. Sign in</h3>
+  <p>Enter the team password and press <b>Sign in</b>. Each device stays signed in for 30 days. If you see “This site is locked”, the site has no password set yet: tell whoever manages the tool.</p>
+  <h3>2. Start a deal</h3>
+  <p><b>Scan documents with AI</b> reads the borrower’s files. <b>Upload deal spreadsheet</b> loads a saved deal. <b>Try a sample deal</b> loads a made-up example. <b>Save data as spreadsheet</b> keeps a copy of your inputs. <b>Clear</b> starts over.</p>
+</td><td><img src="../img/01-sign-in.png" alt="Sign-in page" style="width:46%;margin-right:3%"><img src="../img/02-start.png" alt="Start screen" style="width:50%;vertical-align:top"><div class="cap">Sign-in page and the Deal data start screen.</div></td></tr></table>
+
+<table class="step"><tr><td class="txt">
+  <h3>3. Scan the deal documents (optional)</h3>
+  <p>Add the term sheet, underwriting model (Excel), loan application, budget, financial statements or bios, up to 20 files. Press <b>Read files with AI</b>. The AI suggests a value for each field, <b>with a quote from the file</b>. Tick the ones that are right and press <b>Fill in</b>. Nothing is filled in until you approve it.</p>
+  <p class="note">Only scan documents you are allowed to share with an AI service.</p>
+</td><td><img src="../img/06-scan.png" alt="Scan documents dialog"><div class="cap">Scan documents with AI.</div></td></tr></table>
+
+<table class="step"><tr><td class="txt">
+  <h3>4. Check the Deal data sections</h3>
+  <p>Work down sections 1–12. The <b>(i)</b> explains each one. Useful details:</p>
+  <ul>
+    <li><b>Borrower stage</b> is suggested from development completed: under $1M Early-emerging, $1M–$10M Emerging, $10M+ Established.</li>
+    <li><b>Repayment structure:</b> choosing “Interest-only period, then amortizing” fills in 24 months and 15 years. Change them if the term sheet differs.</li>
+    <li><b>Collateral</b> and <b>Guarantee</b> are separate boxes.</li>
+    <li>Any text box accepts <b>bullets</b>: the memo turns them into a paragraph.</li>
+    <li><b>✨ Describe the area with AI</b> and <b>✨ Write the loan sizing paragraph with AI</b> draft text you can edit.</li>
+  </ul>
+</td><td><img src="../img/03-loan-section.png" alt="Loan request section with info popup"><div class="cap">Section 3 with its (i) explanation open.</div></td></tr></table>
+
+<table class="step"><tr><td class="txt">
+  <h3>5. News check and extra sections</h3>
+  <p><b>Section 9:</b> <b>Search the news</b> looks up the borrower, principal, project and street (last 3 years) and rates each article by warning words. <b>Deeper AI search</b> reads and rates articles with AI. Red and yellow items become memo flags. Delete anything that isn’t about this deal.</p>
+  <p><b>Section 12:</b> add your own memo section, either <b>Just this memo</b> or <b>All future memos</b> (kept on this computer’s browser), and choose where it goes.</p>
+</td><td><img src="../img/04-news.png" alt="News check"><div class="cap">News check (section 9).</div></td></tr></table>
+
+<table class="step"><tr><td class="txt">
+  <h3>6. Write the memo and read the Verification report</h3>
+  <p>Press <b>Write the memo →</b>. The memo follows EBIARA’s format: Request, Investment Merits, Project Breakdown, Sources &amp; Uses, Mission Alignment, Neighborhood Impact, Financials, Repayment, Risks &amp; Mitigants, Loan Sizing, Recommendation, Approvals and Exhibits.</p>
+  <p>The <b>Verification report</b> above the memo re-checks the numbers, the math and the ratings:</p>
+  <ul>
+    <li><b>Failed</b>: a real error (e.g. sources and uses don’t balance). Fix it on Deal data, then write the memo again.</li>
+    <li><b>Worth a look</b>: something unusual to confirm (e.g. repayment cushion under 3 months).</li>
+    <li><b>Passed</b>: checks that found nothing.</li>
+  </ul>
+  <p><b>[… to be added]</b> marks information still missing.</p>
+</td><td><img src="../img/07-memo-top.png" alt="Memo draft with verification report"><div class="cap">Memo draft with the Verification report.</div></td></tr></table>
+
+<table class="step"><tr><td class="txt">
+  <h3>7. Check where any number came from</h3>
+  <p>In <b>Viewing</b> mode (eye icon), tap any highlighted number. The card shows the box it was typed in, the file and quote it was scanned from, or the math the app did. <b>Go to this in Deal data</b> jumps to the box. Switch to <b>Editing</b> (pencil) to type directly in the memo, then press <b>Re-check the memo text</b>.</p>
+  <h3>8. Export</h3>
+  <p><b>Download for Word</b> keeps the formatting and colors. <b>Print / PDF</b> and <b>Copy text</b> are also available. If checks failed, the app asks you to confirm first.</p>
+</td><td><img src="../img/09-source-card.png" alt="Where this came from card"><div class="cap">Tapping $63,750 shows the formula and its inputs.</div></td></tr></table>
+
+<h2>What the results mean</h2>
+<table class="step"><tr><td class="txt">
+  <ul>
+    <li><span class="g">Green</span> meets the fund’s rule. <span class="y">Yellow</span> supportable but needs a look. <span class="r">Red</span> resolve before committee. The overall rating is never better than the weakest of Experience, Mission Alignment and Financial Strength.</li>
+    <li>The rules behind each rating are listed in the memo’s <b>Underwriter Review: Automated Flags</b> (e.g. debt-to-equity under 2.0x = green).</li>
+    <li><b>Neighborhood impact</b> figures are <b>planning ranges</b> from general assumptions (e.g. 1.5%–3% property tax). They are not measured or client-provided numbers. Replace them with real figures before relying on them.</li>
+    <li><b>News ratings</b> from the free search come from warning words in headlines, not a full read.</li>
+  </ul>
+</td><td><img src="../img/08-merits.png" alt="Investment merits table"><div class="cap">Investment Merits with the fund’s color evaluation cells.</div></td></tr></table>
+
+<h2>What needs a person (always)</h2>
+<ul>
+  <li>The memo is a <b>first draft</b>. An underwriter owns every word, and the investment committee makes the decision.</li>
+  <li>Confirm every value the AI scanned against the quoted file, and every news item against its source.</li>
+  <li>Write or confirm the <b>mitigant</b> for each risk, the recommendation, and the borrower’s bio against public records.</li>
+  <li>Use only made-up data or documents you are allowed to share. Deal data stays in your browser; only AI requests are sent out.</li>
+</ul>
+
+<h2>When something goes wrong</h2>
+<table class="grid">
+  <tr><th>What you see</th><th>What to do</th></tr>
+  <tr><td>Page takes a long time to open</td><td>Normal on the free plan after a quiet period: wait up to a minute and reload.</td></tr>
+  <tr><td>“This site is locked” / sign-in page keeps returning</td><td>The team password isn’t set or was changed. Ask whoever manages the tool for the current password.</td></tr>
+  <tr><td>“Please sign in again” on an AI button</td><td>Your sign-in expired: reload the page and enter the password.</td></tr>
+  <tr><td>AI says the key was rejected or is out of credit</td><td>Tell whoever manages the tool. The AI key in Render needs replacing or topping up. Everything else still works.</td></tr>
+  <tr><td>“The news sources sent back no results at all”</td><td>The news sites are limiting requests: try again later, or use the “Search it yourself” links.</td></tr>
+  <tr><td>Scan found nothing / values look wrong</td><td>Add the term sheet or underwriting model. Don’t approve values whose quote doesn’t match.</td></tr>
+  <tr><td>Your inputs disappeared</td><td>Inputs are kept in this browser only. Use “Save data as spreadsheet” and reload it with “Upload deal spreadsheet”.</td></tr>
+</table>
+</body></html>

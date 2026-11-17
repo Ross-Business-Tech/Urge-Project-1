@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "start": "node server.mjs",
     "stress": "node tests/stress.mjs",
+    "test:acceptance": "node tests/acceptance.mjs",
     "smoke": "node scripts/smoke-test.cjs",
     "publish:preview": "node scripts/herenow-publish.mjs preview"
   },
