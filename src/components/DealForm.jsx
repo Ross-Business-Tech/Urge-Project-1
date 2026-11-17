@@ -408,7 +408,7 @@ export default function DealForm({ deal, set, templates, setTemplates, onWalkSco
         <Field {...p} name="siteControl" label="Site control?" options={YES_NO} />
         <Field {...p} name="previouslyVacant" label="Previously vacant / blighted?" options={YES_NO} />
         <Field {...p} name="totalProjectCost" label="Total project cost" type="number" prefix="$" />
-        <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Filled in from walkscore.com when you enter the address, or press the button below." />
+        <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Type it in, or use the button below to look it up on walkscore.com." />
         <WalkScoreLookup deal={deal} onResult={onWalkScore} />
         <Field {...p} name="neighborhood" label="What’s around the site" type="textarea" hint="Type it yourself (bullets are fine) or let the AI describe nearby places, new developments and who they serve." />
         <AiButton label="✨ Describe the area with AI" run={() => describeArea(deal)} onText={(t) => set({ ...deal, neighborhood: t })}
