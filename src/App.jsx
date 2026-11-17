@@ -266,7 +266,6 @@ export default function App() {
           <div className="actions">
             <DocScan deal={deal} onApply={applyScan} />
             <button className="btn ghost" onClick={() => fileRef.current?.click()}>Upload deal spreadsheet</button>
-            <button className="btn ghost" onClick={() => { loadDeal(structuredClone(sampleDeal), { kind: 'sample' }); flash('Loaded a made-up sample deal.'); }}>Try a sample deal</button>
             <button className="btn ghost" onClick={() => download(`deal-data-${slug(deal.firmName || 'template')}.csv`, dealToCsv(deal.firmName ? deal : sampleDeal), 'text/csv')}>
               {deal.firmName ? 'Save data as spreadsheet' : 'Download blank template'}
             </button>

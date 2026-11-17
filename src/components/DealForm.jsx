@@ -27,14 +27,14 @@ function NewsCheck({ deal, set }) {
   return (
     <div className="field wide news-check">
       <p className="small">
-        Searches Bing and Google News for the last 3 years of coverage on the borrower, the principal, the project and its street, and rates each article red, yellow or green using warning words (e.g. lawsuit, lien, foreclosure). “Deeper AI search” reads and rates articles with AI once your instructor adds the AI key.
+        Searches Bing and Google News for the last 3 years of coverage on the borrower, the principal, the project and its street, and rates each article red, yellow or green using warning words (e.g. lawsuit, lien, foreclosure). “Deeper AI search” reads and rates articles with AI.
         Results go into the memo and the flags list. Always open the source before relying on it.
       </p>
       <div className="actions">
         <button type="button" className="btn" onClick={() => run(false)} disabled={!!busy || !ready}>
           {busy === 'free' ? 'Searching…' : deal.newsCheckedAt ? 'Search the news again' : 'Search the news'}
         </button>
-        <button type="button" className="btn ghost" onClick={() => run(true)} disabled={!!busy || !ready} title="Needs the AI key in here.now">
+        <button type="button" className="btn ghost" onClick={() => run(true)} disabled={!!busy || !ready}>
           {busy === 'ai' ? 'AI is reading the news… (up to a minute)' : 'Deeper AI search'}
         </button>
       </div>
