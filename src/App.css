@@ -392,6 +392,8 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
 }
 
 /* ───────── Print / PDF ───────── */
+/* Page margins for Print / Save as PDF */
+@page { size: letter; margin: 0.8in 0.75in 0.9in; }
 @media print {
   .no-print { display: none !important; }
   body, .app { background: #fff; }
@@ -485,7 +487,8 @@ select { appearance: none; -webkit-appearance: none; background-image: url("data
   .memo.ebiara { font-size: 11pt; }
   .memo.ebiara .draft-tag { position: static; display: inline-block; float: right; }
   .memo.ebiara .exhibit, .memo.ebiara .approvals { break-before: page; }
-  .memo.ebiara .memo-footer { display: block; position: fixed; bottom: 0; left: 0; font-size: 9pt; color: #333; }
+  /* The firm name and page numbers print in the page margins (see the @page rules in Memo.jsx). */
+  .memo.ebiara .memo-footer { display: none; }
   .memo.ebiara .table-scroll table { min-width: 0; }
 }
 

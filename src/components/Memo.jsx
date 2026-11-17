@@ -23,6 +23,7 @@ const v = (val, what) => (has(val) ? val : <Missing what={what} />);
 const fx = (n) => `${n.toFixed(2)}x`;
 const sqft = (n) => Math.round(num(n)).toLocaleString('en-US');
 const lower1 = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+const cssText = (t) => String(t || '').replace(/[\\"\n\r<>]/g, ' ').slice(0, 120);
 const stripDot = (s) => String(s || '').trim().replace(/[.\s]+$/, '');
 const initials = (name) => String(name || '?').replace(/[^A-Za-z ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 const sameName = (x, y) => String(x || '').trim().toLowerCase() === String(y || '').trim().toLowerCase();
@@ -772,6 +773,8 @@ function MemoDoc({ deal: raw }) {
       {extra('end')}
 
       <footer className="memo-footer">{firm}</footer>
+      {/* Printed footer in the page margin: firm name bottom left, page numbers bottom right. */}
+      <style>{`@media print { @page { @bottom-left { content: "${cssText(firm)}"; font: 9pt Arial, sans-serif; color: #444; } @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 9pt Arial, sans-serif; color: #444; } } }`}</style>
     </article>
   );
 }
