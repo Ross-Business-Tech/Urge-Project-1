@@ -10,7 +10,6 @@ import { analyze } from './lib/analysis.js';
 import { verifyAll } from './lib/verify/index.js';
 import { readFactsFromDom } from './lib/verify/memoFacts.js';
 import VerificationReport from './components/VerificationReport.jsx';
-import { sampleLoans } from './lib/sampleLoans.js';
 import { loadTemplates, saveTemplates } from './lib/sections.js';
 import { polishDeal, hasTextToPolish } from './lib/polish.js';
 import './App.css';
@@ -93,13 +92,6 @@ export default function App() {
   // Load a whole new deal and record where it came from.
   // A new deal means the old memo no longer matches it, so clear it and refresh the form.
   const loadDeal = (d, o) => { setDeal(d); setOrigins(o); setGenerated(null); setCard(null); setSpin((n) => n + 1); };
-
-  const loadSample = (id) => {
-    const ex = sampleLoans.find((x) => x.id === id);
-    if (!ex) return;
-    loadDeal(structuredClone(ex.deal), { kind: 'sample' });
-    flash(`Loaded sample: ${ex.name}.`);
-  };
 
   // Edits on the Deal data page: anything changed by hand now counts as "typed".
   const editDeal = (next) => {
@@ -284,15 +276,6 @@ export default function App() {
             </button>
             <button className="btn text" onClick={() => { if (confirm('Clear all fields?')) loadDeal(structuredClone(emptyDeal), { kind: 'typed' }); }}>Clear</button>
             <input ref={fileRef} type="file" accept=".csv,.json,text/csv,application/json" hidden onChange={onUpload} />
-          </div>
-          <div className="samples">
-            <label>
-              <span>Sample loans (all made up)</span>
-              <select value="" onChange={(e) => loadSample(e.target.value)} aria-label="Load a sample loan">
-                <option value="">Choose a sample loan…</option>
-                {sampleLoans.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-              </select>
-            </label>
           </div>
           <p className="hint">Spreadsheet format: one row per field (CSV). Open the template in Excel, fill in column B, and save as CSV.</p>
         </section>
