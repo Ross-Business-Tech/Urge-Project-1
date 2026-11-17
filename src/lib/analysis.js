@@ -191,7 +191,7 @@ export function analyze(deal) {
     text: has(deal.growthPlan) ? deal.growthPlan : 'Growth plan not provided.' });
   const jobs = num(deal.jobsCreated);
   mission.push({ label: 'Economic impact', level: jobs >= 25 ? 'green' : jobs > 0 ? 'yellow' : 'yellow',
-    text: jobs > 0 ? `Project expected to create or support about ${jobs} jobs and ${num(deal.squareFeet).toLocaleString()} sq ft of commercial space.` : 'Job creation estimate not provided.' });
+    text: jobs > 0 ? `Project expected to create or support about ${jobs} jobs${num(deal.commercialSqFt) > 0 ? ` and ${num(deal.commercialSqFt).toLocaleString()} sq ft of commercial space` : ''}.` : 'Job creation estimate not provided.' });
   mission.push({ label: 'Strategic neighborhood', level: deal.impactArea === 'Yes' ? 'green' : 'yellow',
     text: deal.impactArea === 'Yes' ? 'Project is located in a strategic neighborhood.' : deal.impactArea === 'No' ? 'Project is not in a strategic neighborhood.' : 'Strategic-neighborhood status not provided.' });
   const missionGreens = mission.filter((m) => m.level === 'green').length;

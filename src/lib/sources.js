@@ -56,7 +56,7 @@ function whereFrom(field, rowKey, origins = {}) {
     if (/\.json$/i.test(origins.fileName || '')) return { kind: 'file', text: `Uploaded file “${origins.fileName}”` };
     return { kind: 'file', text: `Not in the uploaded file “${origins.fileName}”. Default value from the ${section}` };
   }
-  if (origins.kind === 'sample') return { kind: 'sample', text: `Made-up sample loan (the “Sample loans” list), ${section}` };
+  if (origins.kind === 'sample') return { kind: 'sample', text: `Made-up sample loan, ${section}` };
   return { kind: 'typed', text: `Typed on the ${section}` };
 }
 

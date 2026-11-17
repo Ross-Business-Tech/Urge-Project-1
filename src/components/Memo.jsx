@@ -23,6 +23,11 @@ const v = (val, what) => (has(val) ? val : <Missing what={what} />);
 const fx = (n) => `${n.toFixed(2)}x`;
 const sqft = (n) => Math.round(num(n)).toLocaleString('en-US');
 const lower1 = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+// "a mixed-use building" / "a project with 32 apartments and …" (descriptions often start with a count).
+// "… refinance proceeds (expected month 54)" — the month is added by the sentence itself.
+const noMonth = (t) => String(t).replace(/\s*[(,;]\s*(?:expected\s+)?(?:in\s+|around\s+|by\s+)?month\s+\d+\)?\s*$/i, '');
+const startsWithCount = (s) => /^\s*\d/.test(String(s || ''));
+const aDesc = (s) => { const t = String(s).trim(); return startsWithCount(t) ? `a project with ${t}` : `${/^[aeiou]/i.test(t) ? 'an' : 'a'} ${lower1(t)}`; };
 const cssText = (t) => String(t || '').replace(/[\\"\n\r<>]/g, ' ').slice(0, 120);
 const stripDot = (s) => String(s || '').trim().replace(/[.\s]+$/, '');
 const initials = (name) => String(name || '?').replace(/[^A-Za-z ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
@@ -165,7 +170,7 @@ function MemoDoc({ deal: raw }) {
         <h3 className="sub">Loan Request</h3>
         <p>
           Approval of a <Src r="loanAmount">{money(a.loan)}</Src> {fund} loan facility to {firm} to support {project}
-          {has(deal.assetType) ? `, a ${lower1(deal.assetType)}` : typeLabel ? `, a ${lower1(typeLabel)} project` : ''} located at {v(deal.projectAddress, 'Address')}. {has(deal.loanPurpose) ? `${stripDot(deal.loanPurpose)}.` : <Missing what="Loan purpose" />}
+          {has(deal.assetType) ? `, ${aDesc(deal.assetType)}` : typeLabel ? `, a ${lower1(typeLabel)} project` : ''} located at {v(deal.projectAddress, 'Address')}. {has(deal.loanPurpose) ? `${stripDot(deal.loanPurpose)}.` : <Missing what="Loan purpose" />}
           {' '}{firm} is led by {principal}{has(deal.principalTitle) ? `, ${deal.principalTitle}` : ''}.
           {a.stage ? ` The firm is classified as ${/^[aeiou]/i.test(a.stage) ? 'an' : 'a'} ${a.stage.toLowerCase()} developer.` : ''}
         </p>
@@ -411,9 +416,9 @@ function MemoDoc({ deal: raw }) {
       <section>
         <h2>INVESTMENT OVERVIEW</h2>
         <p>
-          {fund} would lend <Src r="loanAmount">{money(a.loan)}</Src> to {firm} to support {project}{a.projectCost ? <>, a <Src c="projectCost">{money(a.projectCost)}</Src> {has(deal.assetType) ? deal.assetType.toLowerCase() : 'commercial'} project</> : ''}.
+          {fund} would lend <Src r="loanAmount">{money(a.loan)}</Src> to {firm} to support {project}{a.projectCost ? <>, a <Src c="projectCost">{money(a.projectCost)}</Src> {has(deal.assetType) ? (startsWithCount(deal.assetType) ? `project with ${String(deal.assetType).trim()}` : `${lower1(String(deal.assetType).trim())} project`) : 'commercial project'}</> : ''}.
           Over the {termYears || ''} term the loan is expected to earn <Src c="totalInterest">{money(a.totalInterest)}</Src> in interest{a.fee ? <> plus <Src c="fee">{money(a.fee)}</Src> in fees</> : ''}{a.successFee > 0 ? <> and a <Src c="successFee">{money(a.successFee)}</Src> success fee</> : ''}.
-          The primary repayment source is {has(deal.repaymentOptions?.[0]?.option) ? deal.repaymentOptions[0].option.toLowerCase() : <Missing what="Primary repayment source" />}
+          The primary repayment source is {has(deal.primaryRepayment) ? lower1(noMonth(stripDot(deal.primaryRepayment))) : has(deal.repaymentOptions?.[0]?.option) ? lower1(noMonth(stripDot(deal.repaymentOptions[0].option))) : <Missing what="Primary repayment source" />}
           {a.exitMonth ? <>, expected around <Src r="exitMonth">month {a.exitMonth}</Src></> : ''}.
           Beyond the single project, the loan is intended to strengthen {firm} as a company: {has(deal.growthPlan) ? deal.growthPlan.charAt(0).toLowerCase() + deal.growthPlan.slice(1) : <Missing what="Growth plan" />}
         </p>
@@ -705,7 +710,7 @@ function MemoDoc({ deal: raw }) {
         <h2>RECOMMENDATION</h2>
         <p>
           This investment request is {a.missionLevel === 'red' ? 'only partly' : 'in'} alignment with the overall mission and goals of the {fund} Fund, namely the growth and scale of underrepresented development firms.
-          {' '}The proposed loan will support {project}{has(deal.assetType) ? `, a ${lower1(deal.assetType)}` : ''}, and help {firm} grow its capacity as a developer.
+          {' '}The proposed loan will support {project}{has(deal.assetType) ? `, ${aDesc(deal.assetType)}` : ''}, and help {firm} grow its capacity as a developer.
           {' '}The review produced <Src c="newsCount">{reds.length} red and {yellows.length} yellow item{yellows.length === 1 ? '' : 's'}</Src>, listed under Underwriter Review.
         </p>
         <p>
