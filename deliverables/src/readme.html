@@ -45,7 +45,7 @@
 <table class="grid">
   <tr><th style="width:27%">Task</th><th>How</th></tr>
   <tr><td>Deploy a change</td><td>Merge a pull request into <b>main</b>. Render rebuilds automatically (<code>npm ci &amp;&amp; npm run build</code>, then <code>npm start</code>). Check <code>/api/health</code> after.</td></tr>
-  <tr><td>Render settings (Environment)</td><td><code>SITE_PASSWORD</code> (8+ characters; without it the site stays locked) · <code>OPENROUTER_API_KEY</code> (holds the AI key; any of the three services) · optional <code>AI_ORGANIZATION</code> (U-M shortcode), <code>AI_MODEL</code>, <code>AI_BASE_URL</code>. Never put keys or the password in code, slides or GitHub.</td></tr>
+  <tr><td>Render settings (Environment)</td><td><code>SITE_PASSWORD</code> (8+ characters; without it the site stays locked) · <code>OPENROUTER_API_KEY</code> (holds the AI key; any of the three services) · optional <code>AI_ORGANIZATION</code> (U-M shortcode), <code>AI_MODEL</code>, <code>AI_BASE_URL</code> · optional <code>WALKSCORE_API_KEY</code> (free from walkscore.com; turns on the Walk Score lookup). Never put keys or the password in code, slides or GitHub.</td></tr>
   <tr><td>Remove someone’s access</td><td>Change <code>SITE_PASSWORD</code> in Render: everyone is signed out and needs the new password.</td></tr>
   <tr><td>AI key</td><td>U-M GPT Toolkit keys expire yearly: renew at toolkit.umgpt.umich.edu, paste into Render, redeploy. Usage is billed to the shortcode.</td></tr>
   <tr><td>Test before merging</td><td><code>npm run build</code> · <code>npm run stress</code> (88 checks) · <code>node tests/acceptance.mjs</code> (31 examples). Both must pass.</td></tr>

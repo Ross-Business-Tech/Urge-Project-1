@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { searchNews, searchNewsFree, manualSearches } from '../lib/news.js';
 import { analyze, suggestStage, STAGES } from '../lib/analysis.js';
 import { moneyShort } from '../lib/format.js';
 import { POSITIONS, positionLabel } from '../lib/sections.js';
 import { describeArea, loanSizingParagraph } from '../lib/aiWrite.js';
+import { lookupWalkScore, walkScoreQuote } from '../lib/walkscore.js';
 
 const YES_NO = ['', 'Yes', 'No'];
 
@@ -167,6 +168,55 @@ function AiButton({ label, run, onText, confirmReplace }) {
     </div>
   );
 }
+// Looks the project address up on walkscore.com. Runs by itself once a full address is entered
+// and the Walk Score box is empty; the button re-checks it. A typed score that differs is never
+// replaced without asking.
+const looksComplete = (a) => /\d/.test(a) && /,/.test(a) && a.trim().length >= 10;
+function WalkScoreLookup({ deal, onResult }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [res, setRes] = useState(null);
+  const tried = useRef('');
+  const address = String(deal.projectAddress || '').trim();
+
+  const go = async (auto) => {
+    if (!address) { setErr('Type the project’s street address above first.'); return; }
+    setBusy(true); setErr(''); tried.current = address;
+    try {
+      const r = await lookupWalkScore(address);
+      setRes(r);
+      const current = String(deal.walkScore || '').trim();
+      if (current && Number(current) !== r.walkScore && (auto || !confirm(`walkscore.com gives ${r.walkScore}, but the box says ${current}. Replace it with ${r.walkScore}?`))) return;
+      onResult?.(r.walkScore, walkScoreQuote(r));
+    } catch (e) {
+      // Stay quiet when it ran by itself and the lookup simply isn't available.
+      if (!(auto && ['no_key', 'unavailable', 'network'].includes(e.code))) setErr(e.message);
+    } finally { setBusy(false); }
+  };
+
+  useEffect(() => {
+    if (String(deal.walkScore || '').trim() || !looksComplete(address) || tried.current === address) return undefined;
+    const t = setTimeout(() => go(true), 1500);
+    return () => clearTimeout(t);
+  }, [address, deal.walkScore]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const differs = res && String(deal.walkScore || '').trim() && Number(deal.walkScore) !== res.walkScore;
+  return (
+    <div className="ai-btn field wide walkscore-lookup">
+      <div><button type="button" className="btn ghost" onClick={() => go(false)} disabled={busy}>{busy ? 'Checking walkscore.com…' : res ? 'Check Walk Score again' : 'Look up Walk Score'}</button></div>
+      {res && (
+        <p className={`small${differs ? ' news-error' : ''}`} role="status">
+          walkscore.com: <b>{res.walkScore}</b>{res.description ? ` (${res.description})` : ''}
+          {res.transitScore != null ? ` · Transit ${res.transitScore}` : ''}{res.bikeScore != null ? ` · Bike ${res.bikeScore}` : ''}
+          {res.matchedAddress ? ` · for ${res.matchedAddress}` : ''} · <a href={res.link} target="_blank" rel="noreferrer">view on walkscore.com</a>
+          {differs ? ` · The Walk Score box says ${deal.walkScore}: check which is right.` : ''}
+        </p>
+      )}
+      {err && <p className="news-error" role="alert">{err}</p>}
+    </div>
+  );
+}
+
 const REPAYMENT = ['Interest-only, principal due at maturity', 'Interest-only period, then amortizing', 'Fully amortizing', 'Accrued interest, all due at maturity'];
 
 // Shows the affordable units as shares of all residential units, e.g. "3 at 80% AMI (17%)".
@@ -284,7 +334,7 @@ function ExtraSections({ deal, set, templates = [], setTemplates }) {
   );
 }
 
-export default function DealForm({ deal, set, templates, setTemplates }) {
+export default function DealForm({ deal, set, templates, setTemplates, onWalkScore }) {
   const p = { deal, set };
   return (
     <div className="form">
@@ -358,7 +408,8 @@ export default function DealForm({ deal, set, templates, setTemplates }) {
         <Field {...p} name="siteControl" label="Site control?" options={YES_NO} />
         <Field {...p} name="previouslyVacant" label="Previously vacant / blighted?" options={YES_NO} />
         <Field {...p} name="totalProjectCost" label="Total project cost" type="number" prefix="$" />
-        <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Look it up at walkscore.com" />
+        <Field {...p} name="walkScore" label="Walk Score" type="number" hint="Type it in, or use the button below to look it up on walkscore.com." />
+        <WalkScoreLookup deal={deal} onResult={onWalkScore} />
         <Field {...p} name="neighborhood" label="What’s around the site" type="textarea" hint="Type it yourself (bullets are fine) or let the AI describe nearby places, new developments and who they serve." />
         <AiButton label="✨ Describe the area with AI" run={() => describeArea(deal)} onText={(t) => set({ ...deal, neighborhood: t })}
           confirmReplace={deal.neighborhood?.trim() ? 'Replace what’s in “What’s around the site” with the AI’s description?' : ''} />

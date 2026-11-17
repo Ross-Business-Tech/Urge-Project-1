@@ -178,7 +178,6 @@ export default function DocScan({ deal, onApply }) {
         </ul>
       )}
 
-      <p className="small scan-privacy">Use made-up documents only. The files are sent to an AI service to be read.</p>
 
       <div className="actions">
         <button type="button" className="btn" onClick={scan} disabled={busy || reading || !ready.length}>
