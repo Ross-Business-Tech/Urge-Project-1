@@ -538,3 +538,9 @@ legend { position: relative; }
 @media (hover: hover) { legend:hover .info-pop { display: block; } }
 .ai-btn { gap: 4px; }
 .affordable-summary { margin: -4px 0 0; }
+
+/* AI-polished wording notice above the memo */
+.polish-note { background: var(--brand-tint, #eef4fd); border-radius: 10px; padding: 9px 12px; font-size: 14px; margin: 0 0 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.polish-note.muted { background: #f2f2f4; color: var(--muted); }
+.polish-note small { color: var(--muted); }
+.polish-note .spinner { width: 14px; height: 14px; }

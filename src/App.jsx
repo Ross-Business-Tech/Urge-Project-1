@@ -12,6 +12,7 @@ import { readFactsFromDom } from './lib/verify/memoFacts.js';
 import VerificationReport from './components/VerificationReport.jsx';
 import { sampleLoans } from './lib/sampleLoans.js';
 import { loadTemplates, saveTemplates } from './lib/sections.js';
+import { polishDeal, hasTextToPolish } from './lib/polish.js';
 import './App.css';
 
 const STORE = 'memo-drafter-deal-v1';
@@ -68,7 +69,8 @@ export default function App() {
   const [card, setCard] = useState(null);
   const closeCard = useCallback(() => setCard(null), []);
   const [tab, setTab] = useState('data');
-  const [generated, setGenerated] = useState(null); // { deal, id }
+  const [generated, setGenerated] = useState(null); // { deal, id, memoDeal (AI-polished wording), wording }
+  const [showOriginal, setShowOriginal] = useState(false); // show the underwriter's own wording instead of the polished one
   const [msg, setMsg] = useState(null);
   const fileRef = useRef(null);
   const memoRef = useRef(null);
@@ -139,7 +141,17 @@ export default function App() {
   };
 
   const generate = () => {
-    setGenerated({ deal: { ...structuredClone(deal), templateSections: structuredClone(templates) }, origins: structuredClone(origins), id: Date.now() });
+    const g = { deal: { ...structuredClone(deal), templateSections: structuredClone(templates) }, origins: structuredClone(origins), id: Date.now() };
+    const polish = hasTextToPolish(g.deal);
+    setGenerated({ ...g, wording: polish ? 'polishing' : 'none' });
+    setShowOriginal(false);
+    // The AI rewrites free-text answers into polished memo sentences (same facts and numbers).
+    // The checks and source cards keep using the deal exactly as entered.
+    if (polish) {
+      polishDeal(g.deal)
+        .then((r) => setGenerated((cur) => (cur?.id === g.id ? { ...cur, memoDeal: r.changed ? r.deal : null, wording: r.changed ? 'polished' : r.kept ? 'kept' : 'none', changed: r.changed, kept: r.kept } : cur)))
+        .catch((e) => setGenerated((cur) => (cur?.id === g.id ? { ...cur, wording: 'failed', note: e.message } : cur)));
+    }
     setCard(null);
     setTab('memo');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -148,7 +160,7 @@ export default function App() {
   // Remember each number's original text, so the card can tell if it was changed by hand.
   useEffect(() => {
     memoRef.current?.querySelectorAll('.src').forEach((el) => { el.dataset.orig = el.textContent; });
-  }, [generated?.id]);
+  }, [generated?.id, generated?.wording, showOriginal]);
 
   // Viewing mode: tapping a marked number opens its source card.
   const onPaperClick = (e) => {
@@ -236,6 +248,7 @@ export default function App() {
   };
 
   const summary = generated ? analyze(generated.deal) : null;
+  const memoDeal = generated ? (!showOriginal && generated.memoDeal ? generated.memoDeal : generated.deal) : null;
   const counts = summary && {
     red: summary.flags.filter((f) => f.level === 'red').length,
     yellow: summary.flags.filter((f) => f.level === 'yellow').length,
@@ -323,6 +336,17 @@ export default function App() {
                 <button className="btn text" onClick={() => setTab('data')}>← Edit data</button>
               </div>
             </div>
+            {generated.wording === 'polishing' && <p className="polish-note no-print" role="status"><span className="spinner" aria-hidden="true" /> ✨ Polishing your wording… The memo shows your text as typed until it’s ready.</p>}
+            {generated.wording === 'polished' && (
+              <p className="polish-note no-print" role="status">
+                ✨ {showOriginal ? 'Showing your original wording.' : `Wording polished by AI (${generated.changed} section${generated.changed === 1 ? '' : 's'}): bullets and notes rewritten as full sentences; facts and numbers kept as typed.`}
+                {generated.kept ? ` ${generated.kept} section${generated.kept === 1 ? '' : 's'} kept as typed because the rewrite changed a number.` : ''}{' '}
+                <button type="button" className="link-btn" onClick={() => { setShowOriginal((v) => !v); setCard(null); }}>{showOriginal ? 'Show polished wording' : 'Show my original wording'}</button>
+                <small> (switching resets any edits typed into the memo)</small>
+              </p>
+            )}
+            {generated.wording === 'kept' && <p className="polish-note muted no-print" role="status">Your wording is shown as typed: the AI’s rewrite changed a number, so it wasn’t used. Bullets are still turned into paragraphs.</p>}
+            {generated.wording === 'failed' && <p className="polish-note muted no-print" role="status">Your wording is shown as typed, with bullets turned into paragraphs. AI polishing wasn’t available: {generated.note}</p>}
             {report && <VerificationReport report={report} onRecheck={runChecks} checking={checking} onEditData={() => setTab('data')} />}
             <div
               className={`paper ${mode === 'view' ? 'viewing' : 'editing'}`}
@@ -330,10 +354,10 @@ export default function App() {
               contentEditable={mode === 'edit'}
               suppressContentEditableWarning
               spellCheck={mode === 'edit'}
-              key={generated.id}
+              key={`${generated.id}-${memoDeal === generated.deal ? 'typed' : 'polished'}`}
               onClick={onPaperClick}
             >
-              <Memo deal={generated.deal} />
+              <Memo deal={memoDeal} />
             </div>
             {card && mode === 'view' && (
               <SourceCard {...card} onClose={closeCard} onGoTo={goToField} />
