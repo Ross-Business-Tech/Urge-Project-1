@@ -40,7 +40,7 @@ const HINTS = {
   repaymentOptions: 'ways the lender gets repaid, most likely first',
   projectProjections: 'the PROJECT’s yearly revenue, operating expenses and debt service from the pro forma',
   collateralProperties: 'properties pledged as collateral, with annual rent and market value',
-  affordableTiers: 'affordable units grouped by income level: number of units and % of area median income (AMI)',
+  affordableTiers: 'income-restricted (affordable) units grouped by income level: number of units and % of area median income (AMI); never include market-rate units',
   developerStage: 'Early-emerging (under $1M of development completed), Emerging ($1M-$10M, e.g. small multifamily) or Established ($10M+)',
   tdcCompleted: 'total development cost of all projects the borrower has completed, in dollars',
   collateral: 'liens and pledged property only (not guarantees)', guarantee: 'who personally or corporately guarantees the loan',
@@ -161,7 +161,9 @@ export function normalize(parsed, fileNames) {
       }))
     ).filter((row) => TABLES[key].some((c) => !COL_CHOICES[key]?.[c] && row[c])) // drop rows that are only a dropdown value
       // The app adds up the tables itself: a "Total" row copied from the file would count everything twice.
-      .filter((row) => !(AMOUNT_TABLES.has(key) && TOTAL_ROW.test(String(row.label || ''))));
+      .filter((row) => !(AMOUNT_TABLES.has(key) && TOTAL_ROW.test(String(row.label || ''))))
+      // Affordable units need an income level; a row without one is usually the market-rate units.
+      .filter((row) => key !== 'affordableTiers' || Number(row.ami) > 0);
     if (!rows.length) continue;
     out.push({ key, value: rows, file: fileOf(raw.file), quote: clean(raw.quote, 240) });
   }

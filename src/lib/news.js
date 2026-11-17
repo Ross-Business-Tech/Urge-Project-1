@@ -33,7 +33,9 @@ Search the web for recent, relevant news (prefer the last 3 years) on:
 2. THE SITE: the area around "${deal.projectAddress || 'unknown'}" (project: "${deal.projectName || 'unknown'}"). Look for zoning or rezoning, nearby developments, major employers opening or closing, infrastructure/transit changes, crime or safety trends, environmental issues, public incentives.
 
 Rules:
-- Only report items you actually found, with the real source URL. Never invent articles. If you are not sure an article is about this exact firm or person (common names), say so in "relevance".
+- Only report items you actually found, with the real source URL. Never invent articles.
+- Leave out anything about a DIFFERENT company, person or address (similar names, a different street number or street name, generic profile pages). Include an item only if it is clearly about this exact firm, principal, project or address, or about the neighborhood around it; if unsure because of a common name, say so in "relevance".
+- Write in the third person for a memo (never "I" or "you").
 - Rate each item: "red" = could hurt repayment or reputation and must be checked; "yellow" = worth a look; "green" = supportive / positive.
 - Return ONLY JSON, no other text, in this shape:
 {"summary":"2-3 sentence plain-language overview","items":[{"about":"Borrower" or "Site","headline":"...","source":"publication name","date":"YYYY-MM or YYYY-MM-DD if known","url":"https://...","level":"red|yellow|green","summary":"1-2 sentences on what it says","relevance":"1 sentence on why it matters to this loan"}]}
@@ -107,7 +109,7 @@ export async function searchNews(deal) {
   const items = (Array.isArray(parsed.items) ? parsed.items : []).slice(0, 10).map((it) => ({
     about: clean(it.about, 20) === 'Site' ? 'Site' : 'Borrower',
     headline: clean(it.headline, 200),
-    source: clean(it.source, 80),
+    source: clean(it.source, 80).replace(/\s*\([^)]*$/, ''), // drop a parenthesis cut off by the length limit
     date: clean(it.date, 20),
     url: safeUrl(it.url) || '',
     level: ['red', 'yellow', 'green'].includes(it.level) ? it.level : 'yellow',
@@ -132,7 +134,7 @@ Project: "${deal.projectName || 'unknown'}" at "${deal.projectAddress || 'unknow
 A news search found these articles (headline, source, date, snippet):
 ${list}
 
-For each article decide whether it is really about this borrower/principal or about the area around this site.
+For each article decide whether it is really about this borrower/principal or about the area around this site. Mark it "relevant": false if it is about a different company, person or address with a similar name. Write in the third person (never "I" or "you").
 Rate the ones that are: "red" = could hurt repayment or reputation and must be checked; "yellow" = worth a look; "green" = supportive.
 Return ONLY JSON: {"summary":"2-3 sentence plain-language overview","items":[{"n":<article number>,"relevant":true|false,"level":"red|yellow|green","relevance":"1 sentence on why it matters to this loan"}]}`;
   let res;

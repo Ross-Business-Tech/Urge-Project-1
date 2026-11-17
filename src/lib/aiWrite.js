@@ -44,9 +44,11 @@ export async function describeArea(deal) {
   const base = `You are helping a real estate lender's underwriter describe the area around a project site for an investment memo.
 Project: "${deal.projectName || 'the project'}" (${deal.projectType || deal.assetType || 'real estate project'}) at ${where}.
 ${deal.targetPopulation ? `The project is meant to serve: ${deal.targetPopulation}.` : ''}
-Write 1-2 short paragraphs (no bullets, no heading) covering: what is around the site (transit, grocery, schools, parks, employers, restaurants, gyms, hotels); anything NEW or planned nearby (new buildings, businesses opening); and whether nearby places serve a particular demographic relevant to this project (and why that matters). Name places only if you are confident they are real and near this address; otherwise describe in general terms. Do not invent numbers.`;
+Write 1-2 short paragraphs (no bullets, no heading) covering: what is around the site (transit, grocery, schools, parks, employers, restaurants, gyms, hotels); anything NEW or planned nearby (new buildings, businesses opening); and whether nearby places serve a particular demographic relevant to this project (and why that matters). Name places only if you are confident they are real and near this address; otherwise describe in general terms. Do not invent numbers.
+Only describe THIS address. If you cannot find it, say in one sentence that the exact address could not be confirmed and describe the neighborhood in general terms; never describe a different street or street number instead.
+Write in the third person for a memo (never "I" or "you"). No links, URLs or markdown.`;
   const first = await ask(`${base}\nSearch the web for current information about this address and neighborhood.`, { web: true });
-  if (!first.noWeb) return first.text;
+  if (!first.noWeb) return plain(first.text);
   // The AI service can't search the web: give it recent local news found by the free search instead.
   let headlines = '';
   try {
@@ -55,6 +57,17 @@ Write 1-2 short paragraphs (no bullets, no heading) covering: what is around the
   } catch { /* no news; the AI writes from general knowledge */ }
   const { text } = await ask(`${base}
 ${headlines ? `Recent local news about the area (use it for anything new or planned):\n${headlines}` : 'No recent local news was found; rely on general knowledge and say what the underwriter should confirm.'}`);
-  return text;
+  return plain(text);
 }
 
+
+// Memo text, not web text: "([redfin.com](https://…))" -> "(redfin.com)"; bare links and bold markers removed.
+export function plain(t) {
+  return String(t)
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '$1')
+    .replace(/\(\s*\(([^()]+)\)\s*\)/g, '($1)')
+    .replace(/\s*\(?https?:\/\/[^\s)]+\)?/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
